@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Amazon Business - Sistema de Facturación</title>
+    <link rel="stylesheet" href="./public/css/style.css" />
+    <!-- Integración de Font Awesome para iconos -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      rel="icon"
+      type="image/x-icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛒</text></svg>"
+    />
+  </head>
+  <body>
+    <!-- =================================================================================
+       HEADER Y NAVEGACIÓN PRINCIPAL
+       ================================================================================= -->
+    <header>
+      <div class="header-content">
+        <a href="#" class="logo" onclick="showSection('productos')"
+          >🛒 Amazon Business</a
+        >
+        <nav>
+          <ul>
+            <li>
+              <a
+                href="#"
+                id="nav-productos"
+                class="active"
+                onclick="showSection('productos')"
+                >Catálogo</a
+              >
+            </li>
+            <li>
+              <a
+                href="#"
+                id="nav-facturacion"
+                onclick="showSection('facturacion')"
+                >Nueva Factura</a
+              >
+            </li>
+            <li>
+              <a href="#" id="nav-historial" onclick="showSection('historial')"
+                >Facturas</a
+              >
+            </li>
+            <li>
+              <a href="#" id="nav-admin" onclick="showSection('admin')"
+                >Admin</a
+              >
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <!-- =================================================================================
+           SECCIÓN CATÁLOGO DE PRODUCTOS
+           ================================================================================= -->
+      <section id="productos" class="active">
+        <h2><i class="fas fa-boxes"></i> Catálogo de Productos</h2>
+        <div class="catalog-actions">
+          <button class="btn btn-primary" onclick="showSection('facturacion')">
+            <i class="fas fa-file-invoice"></i> Crear Nueva Factura
+          </button>
+        </div>
+
+        <!-- Filtros de categorías -->
+        <div class="category-filters">
+          <div class="filter-header">
+            <h3><i class="fas fa-filter"></i> Filtrar por Categoría</h3>
+          </div>
+          <div class="filter-buttons">
+            <button class="filter-btn active" data-category="todas" onclick="filtrarPorCategoria('todas')">
+              <i class="fas fa-th"></i> Todas
+            </button>
+            <button class="filter-btn" data-category="tecnologia" onclick="filtrarPorCategoria('tecnologia')">
+              <i class="fas fa-laptop"></i> Tecnología
+            </button>
+            <button class="filter-btn" data-category="audio" onclick="filtrarPorCategoria('audio')">
+              <i class="fas fa-headphones"></i> Audio
+            </button>
+            <button class="filter-btn" data-category="monitores" onclick="filtrarPorCategoria('monitores')">
+              <i class="fas fa-desktop"></i> Monitores
+            </button>
+            <button class="filter-btn" data-category="electrodomesticos" onclick="filtrarPorCategoria('electrodomesticos')">
+              <i class="fas fa-tv"></i> Electrodomésticos
+            </button>
+          </div>
+        </div>
+
+        <!-- Barra de búsqueda -->
+        <div class="search-section">
+          <div class="search-container">
+            <input type="text" id="search-products" placeholder="Buscar productos..." class="search-input">
+            <button class="search-btn" onclick="buscarProductos()">
+              <i class="fas fa-search"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Información de resultados -->
+        <div class="results-info">
+          <span id="results-count">Mostrando todos los productos</span>
+          <button id="clear-filters-btn" class="btn-clear-filters d-none" onclick="limpiarFiltros()">
+            <i class="fas fa-times"></i> Limpiar filtros
+          </button>
+        </div>
+
+        <div id="products-catalog" class="products-catalog">
+          <!-- Las tarjetas de productos se insertarán aquí dinámicamente -->
+        </div>
+      </section>
+
+      <!-- =================================================================================
+           SECCIÓN SISTEMA DE FACTURACIÓN DIRECTO
+           ================================================================================= -->
+      <section id="facturacion">
+        <div class="invoice-header">
+          <h2><i class="fas fa-file-invoice-dollar"></i> Sistema de Facturación</h2>
+          <div class="invoice-number">
+            <span>Factura #<span id="invoice-number">FAC-001</span></span>
+          </div>
+        </div>
+
+        <div class="invoice-container">
+          <!-- Panel izquierdo: Creación de factura -->
+          <div class="invoice-left-panel">
+            
+            <!-- Información del cliente -->
+            <div class="invoice-card">
+              <div class="card-header">
+                <h3><i class="fas fa-user-circle"></i> Cliente</h3>
+              </div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label for="customer-select">
+                    <i class="fas fa-users"></i> Seleccionar Cliente
+                  </label>
+                  <select id="customer-select" class="form-control" onchange="actualizarInfoClienteFactura()">
+                    <option value="">-- Seleccionar Cliente --</option>
+                  </select>
+                </div>
+
+                <div id="selected-client-info" class="client-preview d-none">
+                  <div class="client-card">
+                    <img id="client-avatar" src="" alt="Cliente" class="client-avatar">
+                    <div class="client-details">
+                      <h4 id="client-name">-</h4>
+                      <p id="client-email">-</p>
+                      <p id="client-phone">-</p>
+                      <p id="client-cedula">-</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Selección de productos -->
+            <div class="invoice-card">
+              <div class="card-header">
+                <h3><i class="fas fa-shopping-bag"></i> Productos</h3>
+              </div>
+              <div class="card-body">
+                <div class="product-selector">
+                  <div class="form-group">
+                    <label for="product-select">Agregar Producto</label>
+                    <select id="product-select" class="form-control">
+                      <option value="">-- Seleccionar Producto --</option>
+                    </select>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label for="product-quantity">Cantidad</label>
+                      <input type="number" id="product-quantity" value="1" min="1" class="form-control">
+                    </div>
+                    <div class="form-group">
+                      <label>&nbsp;</label>
+                      <button type="button" class="btn btn-primary" onclick="agregarProductoFactura()">
+                        <i class="fas fa-plus"></i> Agregar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="invoice-items-container" class="invoice-items">
+                  <div class="empty-items">
+                    <i class="fas fa-clipboard-list"></i>
+                    <p>No hay productos agregados</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Información adicional -->
+            <div class="invoice-card">
+              <div class="card-header">
+                <h3><i class="fas fa-info-circle"></i> Información Adicional</h3>
+              </div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label for="payment-method">
+                    <i class="fas fa-credit-card"></i> Método de Pago
+                  </label>
+                  <select id="payment-method" class="form-control">
+                    <option value="efectivo">Efectivo</option>
+                    <option value="transferencia">Transferencia Bancaria</option>
+                    <option value="tarjeta">Tarjeta de Crédito</option>
+                    <option value="cheque">Cheque</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>
+                    <i class="fas fa-map-marker-alt"></i> Ubicación (Opcional)
+                  </label>
+                  <button type="button" id="capture-location-btn" class="btn btn-outline-secondary btn-sm" onclick="obtenerUbicacion()">
+                    <i class="fas fa-location-arrow"></i> Capturar Ubicación
+                  </button>
+                  <div id="location-info" class="location-display">
+                    <p id="location-status" class="location-status">📍 Sin ubicación</p>
+                    <div id="location-details" class="d-none">
+                      <div class="location-coords">
+                        <p><strong>Coordenadas:</strong> 
+                          <span id="location-lat">-</span>, <span id="location-lng">-</span>
+                        </p>
+                        <p id="location-address-display" class="d-none">
+                          <strong>Zona:</strong> <span id="location-address-text">-</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Panel derecho: Resumen y total -->
+          <div class="invoice-right-panel">
+            <div class="invoice-summary-card">
+              <div class="card-header">
+                <h3><i class="fas fa-calculator"></i> Resumen de Factura</h3>
+              </div>
+              <div class="card-body">
+                <div class="invoice-totals">
+                  <div class="summary-line">
+                    <span>Subtotal:</span>
+                    <span id="invoice-subtotal">$0.00</span>
+                  </div>
+                  <div class="summary-line">
+                    <span>IVA (12%):</span>
+                    <span id="invoice-tax">$0.00</span>
+                  </div>
+                  <hr class="summary-divider">
+                  <div class="summary-total">
+                    <span>Total:</span>
+                    <span id="invoice-total">$0.00</span>
+                  </div>
+                </div>
+
+                <div class="invoice-actions">
+                  <button id="clear-invoice-btn" class="btn btn-outline-secondary btn-block">
+                    <i class="fas fa-undo"></i> Limpiar Factura
+                  </button>
+                  <button id="generate-invoice-btn" class="btn btn-success btn-lg btn-block">
+                    <i class="fas fa-file-invoice"></i> Generar Factura
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Vista previa de factura -->
+            <div class="invoice-preview-card">
+              <div class="card-header">
+                <h4><i class="fas fa-eye"></i> Vista Previa</h4>
+              </div>
+              <div class="card-body">
+                <div class="invoice-preview">
+                  <div class="preview-header">
+                    <h5>Amazon Business</h5>
+                    <p>Sistema de Facturación</p>
+                  </div>
+                  <div class="preview-client">
+                    <p><strong>Cliente:</strong> <span id="preview-client-name">-</span></p>
+                    <p><strong>Email:</strong> <span id="preview-client-email">-</span></p>
+                  </div>
+                  <div class="preview-items">
+                    <p><strong>Productos:</strong> <span id="preview-items-count">0</span></p>
+                    <p><strong>Total:</strong> <span id="preview-total">$0.00</span></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================================
+           SECCIÓN HISTORIAL DE FACTURAS
+           ================================================================================= -->
+      <section id="historial">
+        <h2><i class="fas fa-history"></i> Historial de Facturas</h2>
+        <div id="invoice-history-container">
+          <!-- El historial de facturas se insertará aquí -->
+        </div>
+      </section>
+
+      <!-- =================================================================================
+           SECCIÓN DE ADMINISTRACIÓN
+           ================================================================================= -->
+      <section id="admin">
+        <!-- Contenido se muestra si el admin está logueado -->
+        <div id="admin-content" class="d-none">
+          <h2><i class="fas fa-user-shield"></i> Panel de Administración</h2>
+          <button id="logout-btn" class="btn btn-danger">
+            Cerrar Sesión de Administrador
+          </button>
+
+          <div class="admin-section">
+            <!-- Administración de Productos -->
+            <div id="admin-products">
+              <h3>Gestión de Productos</h3>
+              <button class="btn btn-success" onclick="showEditProductModal()">
+                <i class="fas fa-plus"></i> Agregar Nuevo Producto
+              </button>
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Foto</th>
+                    <th>Producto</th>
+                    <th>Categoría</th>
+                    <th>Precio</th>
+                    <th>Stock</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-products-table">
+                  <!-- Filas de productos se insertarán aquí -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Administración de Clientes -->
+            <div id="admin-clients">
+              <h3>Gestión de Clientes</h3>
+              <button class="btn btn-success" onclick="showEditClientModal()">
+                <i class="fas fa-user-plus"></i> Agregar Nuevo Cliente
+              </button>
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Foto</th>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-clients-table">
+                  <!-- Filas de clientes se insertarán aquí -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- =================================================================================
+       MODAL UNIVERSAL PARA EDICIÓN Y FORMULARIOS
+       ================================================================================= -->
+    <div id="editModal" class="modal">
+      <div class="modal-content">
+        <span class="modal-close" onclick="closeModal()">&times;</span>
+        <h3 id="modal-title">Título del Modal</h3>
+        <div id="modal-body">
+          <!-- El contenido del formulario se insertará aquí dinámicamente -->
+        </div>
+      </div>
+    </div>
+
+    <!-- =================================================================================
+       CONTENEDOR PARA NOTIFICACIONES (TOAST)
+       ================================================================================= -->
+    <div id="toast-container"></div>
+
+    <!-- =================================================================================
+       SCRIPT PRINCIPAL DE LA APLICACIÓN
+       ================================================================================= -->
+    <script src="./public/js/app.js"></script>
+  </body>
+</html>
+          <!-- El contenido del formulario se insertará aquí dinámicamente -->
+        </div>
+      </div>
+    </div>
+
+    <!-- =================================================================================
+       CONTENEDOR PARA NOTIFICACIONES (TOAST)
+       ================================================================================= -->
+    <div id="toast-container"></div>
+
+    <!-- =================================================================================
+       SCRIPT PRINCIPAL DE LA APLICACIÓN
+       ================================================================================= -->
+    <script src="./public/js/app.js"></script>
+  </body>
+</html>
