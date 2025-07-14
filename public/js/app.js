@@ -125,6 +125,10 @@ function showSection(sectionName) {
     } else if (sectionName === 'facturacion') {
         actualizarVistaCheckout();
         actualizarInfoClienteSeleccionado();
+    } else if (sectionName === 'admin' && isAdmin) {
+        // Actualizar las tablas del panel de administración
+        actualizarTablaAdminProductos();
+        actualizarTablaAdminClientes();
     }
 }
 
@@ -258,12 +262,26 @@ function showEditProductModal(id = null) {
                 <input type="text" id="productName" value="${producto.nombre || ''}" required>
             </div>
             <div class="form-group">
+                <label for="productCategory">Categoría</label>
+                <select id="productCategory" required>
+                    <option value="">-- Seleccionar Categoría --</option>
+                    <option value="tecnologia" ${producto.categoria === 'tecnologia' ? 'selected' : ''}>Tecnología</option>
+                    <option value="audio" ${producto.categoria === 'audio' ? 'selected' : ''}>Audio</option>
+                    <option value="monitores" ${producto.categoria === 'monitores' ? 'selected' : ''}>Monitores</option>
+                    <option value="electrodomesticos" ${producto.categoria === 'electrodomesticos' ? 'selected' : ''}>Electrodomésticos</option>
+                </select>
+            </div>
+            <div class="form-group">
                 <label for="productPrice">Precio</label>
                 <input type="number" id="productPrice" step="0.01" value="${producto.precio || ''}" required>
             </div>
             <div class="form-group">
                 <label for="productStock">Cantidad (Stock)</label>
                 <input type="number" id="productStock" value="${producto.cantidad || ''}" required>
+            </div>
+            <div class="form-group">
+                <label for="productDescription">Descripción (Opcional)</label>
+                <textarea id="productDescription" rows="3" placeholder="Descripción del producto...">${producto.descripcion || ''}</textarea>
             </div>
             <div class="form-group">
                 <label for="productImage">URL de la Imagen</label>
@@ -288,18 +306,30 @@ function showEditProductModal(id = null) {
 
     document.getElementById('product-form').addEventListener('submit', (e) => {
         e.preventDefault();
-        const nombre = document.getElementById('productName').value;
+        const nombre = document.getElementById('productName').value.trim();
+        const categoria = document.getElementById('productCategory').value;
         const precio = parseFloat(document.getElementById('productPrice').value);
         const cantidad = parseInt(document.getElementById('productStock').value);
+        const descripcion = document.getElementById('productDescription').value.trim();
         let imagen = document.getElementById('productImage').value;
-        const previewImg = document.querySelector('#camera-container-product img');
+        const previewImg = document.querySelector('#camera-container-product .photo-preview');
 
         if (previewImg && previewImg.src) {
             imagen = previewImg.src;
         }
 
-        if (!nombre || isNaN(precio) || isNaN(cantidad)) {
+        if (!nombre || !categoria || isNaN(precio) || isNaN(cantidad)) {
             mostrarNotificacion('Por favor, complete todos los campos requeridos.', 'error');
+            return;
+        }
+
+        if (precio <= 0) {
+            mostrarNotificacion('El precio debe ser mayor a 0.', 'error');
+            return;
+        }
+
+        if (cantidad < 0) {
+            mostrarNotificacion('La cantidad no puede ser negativa.', 'error');
             return;
         }
 
@@ -307,18 +337,24 @@ function showEditProductModal(id = null) {
             const nuevoProducto = {
                 id: Date.now(),
                 nombre,
+                categoria,
                 precio,
                 cantidad,
-                imagen
+                descripcion,
+                imagen,
+                fechaRegistro: new Date().toISOString()
             };
             productos.push(nuevoProducto);
-            mostrarNotificacion('Producto agregado exitosamente', 'success');
+            mostrarNotificacion('✅ Producto agregado exitosamente', 'success');
         } else {
             producto.nombre = nombre;
+            producto.categoria = categoria;
             producto.precio = precio;
             producto.cantidad = cantidad;
+            producto.descripcion = descripcion;
             producto.imagen = imagen;
-            mostrarNotificacion('Producto actualizado exitosamente', 'success');
+            producto.fechaModificacion = new Date().toISOString();
+            mostrarNotificacion('✅ Producto actualizado exitosamente', 'success');
         }
 
         guardarDatos();
@@ -749,7 +785,6 @@ function limpiarFactura() {
     limpiarUbicacion(); // Agregar esta línea
 }
 
-
 // ---------------------------------------------------------------------------------
 // 9. RENDERIZADO Y ACTUALIZACIÓN DE VISTAS - SEPARADAS
 // ---------------------------------------------------------------------------------
@@ -876,18 +911,62 @@ function obtenerColorCategoria(categoria) {
 }
 
 function actualizarTablaAdminProductos() {
+    console.log('Actualizando tabla de productos...', productos.length);
     const tbody = document.getElementById('admin-products-table');
+    if (!tbody) {
+        console.error('No se encontró tbody admin-products-table');
+        return;
+    }
+    
     tbody.innerHTML = '';
     productos.forEach(p => {
         const row = document.createElement('tr');
+        
+        // Información de categoría
+        const categoria = p.categoria || 'sin-categoria';
+        const categoriaNombre = categoria.charAt(0).toUpperCase() + categoria.slice(1);
+        const categoriaClass = `category-badge ${categoria}`;
+        
+        // Estado del stock
+        let stockClass = 'stock-normal';
+        let stockText = p.cantidad;
+        
+        if (p.cantidad === 0) {
+            stockClass = 'stock-out';
+            stockText = 'Agotado';
+        } else if (p.cantidad <= 5) {
+            stockClass = 'stock-low';
+            stockText = `${p.cantidad} (Bajo)`;
+        }
+        
         row.innerHTML = `
-            <td><img src="${p.imagen || 'https://via.placeholder.com/50'}" alt="${p.nombre}" width="50"></td>
-            <td>${p.nombre}</td>
-            <td>$${p.precio.toFixed(2)}</td>
-            <td>${p.cantidad}</td>
-            <td class="actions">
-                <button class="btn-icon" onclick="showEditProductModal(${p.id})"><i class="fas fa-edit"></i></button>
-                <button class="btn-icon" onclick="eliminarProducto(${p.id})"><i class="fas fa-trash"></i></button>
+            <td class="product-image-cell">
+                <img src="${p.imagen || 'https://via.placeholder.com/50'}" alt="${p.nombre}" class="product-image" width="50">
+            </td>
+            <td class="product-info-cell">
+                <div class="product-info">
+                    <div class="product-name">${p.nombre}</div>
+                    ${p.descripcion ? `<div class="product-description">${p.descripcion}</div>` : ''}
+                </div>
+            </td>
+            <td class="category-cell">
+                <span class="${categoriaClass}">${categoriaNombre}</span>
+            </td>
+            <td class="price-cell">
+                <span class="price-display">$${p.precio.toFixed(2)}</span>
+            </td>
+            <td class="stock-cell">
+                <span class="stock-badge ${stockClass}">${stockText}</span>
+            </td>
+            <td class="actions-cell">
+                <div class="action-buttons">
+                    <button class="btn-action btn-edit" onclick="showEditProductModal(${p.id})" title="Editar producto">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-action btn-delete" onclick="eliminarProducto(${p.id})" title="Eliminar producto">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
             </td>
         `;
         tbody.appendChild(row);
@@ -895,26 +974,61 @@ function actualizarTablaAdminProductos() {
 }
 
 function actualizarTablaAdminClientes() {
+    console.log('Actualizando tabla de clientes...', clientes.length);
     const tbody = document.getElementById('admin-clients-table');
+    if (!tbody) {
+        console.error('No se encontró tbody admin-clients-table');
+        return;
+    }
+    
     tbody.innerHTML = '';
     clientes.forEach(c => {
         const row = document.createElement('tr');
+        
+        // Información adicional del cliente
+        const telefonoInfo = c.telefono ? 
+            `<br><small><i class="fas fa-phone"></i> ${c.telefono}</small>` : '';
+        
+        const cedulaInfo = c.cedula ?
+            `<br><small><i class="fas fa-id-card"></i> Cédula: ${c.cedula}</small>` : '';
+            
         const ubicacionInfo = c.ubicacion ?
             `<br><small><i class="fas fa-map-marker-alt"></i> ${c.ubicacion.direccionAproximada || 'Ubicación disponible'}</small>` :
             '';
 
-        const cedulaInfo = c.cedula ?
-            `<br><small><i class="fas fa-id-card"></i> Cédula: ${c.cedula}</small>` :
-            '';
+        const fechaRegistro = c.fechaRegistro ? 
+            `<br><small><i class="fas fa-calendar"></i> Registrado: ${new Date(c.fechaRegistro).toLocaleDateString()}</small>` : '';
 
         row.innerHTML = `
-            <td><img src="${c.imagen || 'https://via.placeholder.com/50'}" alt="${c.nombre}" width="50"></td>
-            <td>${c.nombre}${ubicacionInfo}${cedulaInfo}</td>
-            <td>${c.email}</td>
-            <td class="actions">
-                <button class="btn-icon" onclick="showEditClientModal(${c.id})"><i class="fas fa-edit"></i></button>
-                <button class="btn-icon" onclick="eliminarCliente(${c.id})"><i class="fas fa-trash"></i></button>
-                ${c.ubicacion ? `<button class="btn-icon" onclick="mostrarMapaUbicacion(${c.ubicacion.latitud}, ${c.ubicacion.longitud})" title="Ver ubicación"><i class="fas fa-map"></i></button>` : ''}
+            <td class="product-image-cell">
+                <img src="${c.imagen || 'https://via.placeholder.com/50'}" alt="${c.nombre}" class="product-image" width="50">
+            </td>
+            <td class="client-info-cell">
+                <div class="client-info">
+                    <div class="client-name">${c.nombre}</div>
+                    <div class="client-details">
+                        ${telefonoInfo}
+                        ${cedulaInfo}
+                        ${ubicacionInfo}
+                        ${fechaRegistro}
+                    </div>
+                </div>
+            </td>
+            <td class="email-cell">
+                <a href="mailto:${c.email}" style="color: var(--link-color); text-decoration: none;">
+                    <i class="fas fa-envelope"></i> ${c.email}
+                </a>
+            </td>
+            <td class="actions-cell">
+                <div class="action-buttons">
+                    <button class="btn-action btn-edit" onclick="showEditClientModal(${c.id})" title="Editar cliente">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-action btn-delete" onclick="eliminarCliente(${c.id})" title="Eliminar cliente">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    ${c.ubicacion ? `<button class="btn-action" onclick="mostrarMapaUbicacion(${c.ubicacion.latitud}, ${c.ubicacion.longitud})" title="Ver ubicación"><i class="fas fa-map"></i></button>` : ''}
+                </div>
             </td>
         `;
         tbody.appendChild(row);
@@ -941,6 +1055,7 @@ function actualizarVistaFacturas() {
                     <p><strong>Coordenadas:</strong> ${factura.ubicacion.latitud.toFixed(6)}, ${factura.ubicacion.longitud.toFixed(6)}</p>
                     <p><strong>Precisión:</strong> ${Math.round(factura.ubicacion.precision || 0)} metros</p>
                     ${factura.ubicacion.direccionAproximada ? `<p><strong>Zona:</strong> ${factura.ubicacion.direccionAproximada}</p>` : ''}
+
                     <p><strong>Capturada:</strong> ${new Date(factura.ubicacion.timestamp || factura.fecha).toLocaleString()}</p>
                     <button class="btn btn-secondary btn-sm" onclick="mostrarMapaUbicacion(${factura.ubicacion.latitud}, ${factura.ubicacion.longitud})">
                         <i class="fas fa-map"></i> Ver en Mapa
@@ -970,340 +1085,40 @@ function mostrarMapaUbicacion(lat, lng) {
 }
 
 // ---------------------------------------------------------------------------------
-// 10. INTEGRACIÓN DE APIs WEB
+// 10. INTEGRACIÓN DE APIs WEB (MOVIDO A api.js)
 // ---------------------------------------------------------------------------------
 
-// API de Cámara y Ficheros
-function startCamera(type) {
-    currentImageType = type;
-    const containerId = `camera-container-${type}`;
-    const previewContainer = document.getElementById(containerId);
-
-    if (!previewContainer) {
-        console.error(`Contenedor de cámara #${containerId} no encontrado.`);
-        return;
-    }
-
-    previewContainer.style.display = 'block';
-    previewContainer.innerHTML = '<p>Iniciando cámara...</p>';
-
-    navigator.mediaDevices.getUserMedia({ video: true })
-        .then(stream => {
-            currentCamera = stream;
-            const video = document.createElement('video');
-            video.srcObject = stream;
-            video.autoplay = true;
-            video.style.width = '100%';
-
-            const captureButton = document.createElement('button');
-            captureButton.textContent = 'Capturar Foto';
-            captureButton.className = 'btn btn-primary mt-2';
-            captureButton.onclick = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                canvas.getContext('2d').drawImage(video, 0, 0);
-                const imageData = canvas.toDataURL('image/jpeg');
-
-                previewContainer.innerHTML = `<img src="${imageData}" alt="Captured photo" style="width:100%;">`;
-                stopCamera();
-            };
-
-            previewContainer.innerHTML = '';
-            previewContainer.appendChild(video);
-            previewContainer.appendChild(captureButton);
-        })
-        .catch(err => {
-            console.error("Error de cámara:", err);
-            previewContainer.innerHTML = '<p style="color:red;">Error al acceder a la cámara.</p>';
-            mostrarNotificacion('No se pudo acceder a la cámara.', 'error');
-        });
-}
-
-function stopCamera() {
-    if (currentCamera) {
-        currentCamera.getTracks().forEach(track => track.stop());
-        currentCamera = null;
-    }
-}
-
-function loadImageFromFile(input, type) {
-    const file = input.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = e => {
-            const preview = document.getElementById(`camera-container-${type}`);
-            if (preview) {
-                preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
-                preview.style.display = 'block';
-            }
-        };
-        reader.readAsDataURL(file);
-    }
-}
-
-// API de Geolocalización
-function obtenerUbicacion() {
-    const captureBtn = document.getElementById('capture-location-btn');
-    const locationStatus = document.getElementById('location-status');
-    const locationDetails = document.getElementById('location-details');
-
-    if (!('geolocation' in navigator)) {
-        mostrarNotificacion('Geolocalización no disponible en este navegador.', 'error');
-        locationStatus.textContent = 'Geolocalización no soportada';
-        return;
-    }
-
-    // Deshabilitar botón y mostrar estado de carga
-    captureBtn.disabled = true;
-    captureBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Obteniendo ubicación...';
-    locationStatus.textContent = 'Obteniendo ubicación...';
-    locationStatus.className = 'location-status loading';
-
-    const options = {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000
-    };
-
-    navigator.geolocation.getCurrentPosition(
-        (position) => {
-            const { latitude, longitude, accuracy } = position.coords;
-
-            facturaActual.ubicacion = {
-                latitud: latitude,
-                longitud: longitude,
-                precision: accuracy,
-                timestamp: new Date().toISOString()
-            };
-
-            // Actualizar interfaz
-            locationStatus.textContent = '✅ Ubicación capturada exitosamente';
-            locationStatus.className = 'location-status success';
-
-            document.getElementById('location-lat').textContent = latitude.toFixed(6);
-            document.getElementById('location-lng').textContent = longitude.toFixed(6);
-            document.getElementById('location-accuracy').textContent = Math.round(accuracy);
-
-            locationDetails.classList.remove('d-none');
-
-            // Restaurar botón
-            captureBtn.disabled = false;
-            captureBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Actualizar Ubicación';
-
-            mostrarNotificacion(`Ubicación capturada: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`, 'success');
-
-            // Opcional: Obtener dirección aproximada usando reverse geocoding
-            obtenerDireccionAproximada(latitude, longitude);
-        },
-        (error) => {
-            let mensaje = 'Error desconocido al obtener ubicación';
-
-            switch (error.code) {
-                case error.PERMISSION_DENIED:
-                    mensaje = 'Permiso denegado para acceder a la ubicación';
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    mensaje = 'Información de ubicación no disponible';
-                    break;
-                case error.TIMEOUT:
-                    mensaje = 'Tiempo de espera agotado para obtener ubicación';
-                    break;
-            }
-
-            locationStatus.textContent = '❌ ' + mensaje;
-            locationStatus.className = 'location-status error';
-            locationDetails.classList.add('d-none');
-
-            // Restaurar botón
-            captureBtn.disabled = false;
-            captureBtn.innerHTML = '<i class="fas fa-location-arrow"></i> Intentar Nuevamente';
-
-            mostrarNotificacion(mensaje, 'error');
-            console.error('Error de geolocalización:', error);
-        },
-        options
-    );
-}
-
-// Nueva función específica para capturar ubicación del cliente
-function obtenerUbicacionCliente() {
-    const captureBtn = document.getElementById('capture-client-location-btn');
-    const locationStatus = document.getElementById('client-location-status');
-    const locationDetails = document.getElementById('client-location-details');
-
-    if (!('geolocation' in navigator)) {
-        mostrarNotificacion('Geolocalización no disponible en este navegador.', 'error');
-        locationStatus.textContent = 'Geolocalización no soportada';
-        return;
-    }
-
-    // Deshabilitar botón y mostrar estado de carga
-    captureBtn.disabled = true;
-    captureBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Obteniendo ubicación...';
-    locationStatus.textContent = 'Obteniendo ubicación...';
-    locationStatus.className = 'location-status loading';
-
-    const options = {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000
-    };
-
-    navigator.geolocation.getCurrentPosition(
-        (position) => {
-            const { latitude, longitude, accuracy } = position.coords;
-
-            // Guardar temporalmente la ubicación
-            window.tempClientLocation = {
-                latitud: latitude,
-                longitud: longitude,
-                precision: accuracy,
-                timestamp: new Date().toISOString()
-            };
-
-            // Actualizar interfaz
-            locationStatus.textContent = '✅ Ubicación capturada exitosamente';
-            locationStatus.className = 'location-status success';
-
-            document.getElementById('client-location-lat').textContent = latitude.toFixed(6);
-            document.getElementById('client-location-lng').textContent = longitude.toFixed(6);
-            document.getElementById('client-location-accuracy').textContent = Math.round(accuracy);
-
-            locationDetails.classList.remove('d-none');
-
-            // Restaurar botón
-            captureBtn.disabled = false;
-            captureBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Actualizar Ubicación';
-
-            mostrarNotificacion(`Ubicación del cliente capturada: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`, 'success');
-
-            // Obtener dirección aproximada
-            obtenerDireccionAproximadaCliente(latitude, longitude);
-        },
-        (error) => {
-            let mensaje = 'Error desconocido al obtener ubicación';
-
-            switch (error.code) {
-                case error.PERMISSION_DENIED:
-                    mensaje = 'Permiso denegado para acceder a la ubicación';
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    mensaje = 'Información de ubicación no disponible';
-                    break;
-                case error.TIMEOUT:
-                    mensaje = 'Tiempo de espera agotado para obtener ubicación';
-                    break;
-            }
-
-            locationStatus.textContent = '❌ ' + mensaje;
-            locationStatus.className = 'location-status error';
-            locationDetails.classList.add('d-none');
-
-            // Restaurar botón
-            captureBtn.disabled = false;
-            captureBtn.innerHTML = '<i class="fas fa-location-arrow"></i> Intentar Nuevamente';
-
-            mostrarNotificacion(mensaje, 'error');
-            console.error('Error de geolocalización:', error);
-        },
-        options
-    );
-}
-
-function obtenerDireccionAproximada(lat, lng) {
-    const direcciones = [
-        'Zona Centro',
-        'Zona Norte',
-        'Zona Sur',
-        'Zona Este',
-        'Zona Oeste'
-    ];
-
-    const direccionAleatoria = direcciones[Math.floor(Math.random() * direcciones.length)];
-    facturaActual.ubicacion.direccionAproximada = direccionAleatoria;
-
-    // Actualizar interfaz mejorada
-    const addressDisplay = document.getElementById('location-address-display');
-    const addressText = document.getElementById('location-address-text');
-
-    if (addressDisplay && addressText) {
-        addressText.textContent = direccionAleatoria;
-        addressDisplay.classList.remove('d-none');
-    }
-}
-
-function obtenerDireccionAproximadaCliente(lat, lng) {
-    const direcciones = [
-        'Zona Centro',
-        'Zona Norte',
-        'Zona Sur',
-        'Zona Este',
-        'Zona Oeste'
-    ];
-
-    const direccionAleatoria = direcciones[Math.floor(Math.random() * direcciones.length)];
-
-    if (window.tempClientLocation) {
-        window.tempClientLocation.direccionAproximada = direccionAleatoria;
-    }
-
-    // Agregar la dirección aproximada a la interfaz
-    const addressContainer = document.getElementById('client-location-address-container');
-    const addressSpan = document.getElementById('client-location-address');
-
-    if (addressContainer && addressSpan) {
-        addressContainer.classList.remove('d-none');
-        addressSpan.textContent = direccionAleatoria;
-    }
-}
-
-function eliminarCliente(id) {
-    if (!verificarPermisosAdmin()) return;
-    if (confirm('¿Estás seguro de que quieres eliminar este cliente?')) {
-        clientes = clientes.filter(c => c.id !== id);
-        guardarDatos();
-        actualizarTodasLasVistas();
-        mostrarNotificacion('Cliente eliminado.', 'success');
-    }
-}
-
-// Mejorar la función de inicialización de formularios
-function inicializarFormularios() {
-    // Agregar listeners para validación en tiempo real
-    document.addEventListener('input', (e) => {
-        if (e.target.type === 'email') {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (e.target.value && !emailRegex.test(e.target.value)) {
-                e.target.style.borderColor = 'var(--error-color)';
-            } else {
-                e.target.style.borderColor = 'var(--border-color)';
-            }
-        }
-    });
-
-    // Prevenir envío de formularios con Enter accidental
-    document.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && e.target.tagName !== 'BUTTON' && e.target.type !== 'submit') {
-            e.preventDefault();
-        }
-    });
-}
+// Las funciones relacionadas con la cámara, geolocalización y notificaciones
+// han sido movidas a public/js/api.js para una mejor organización.
 
 // ---------------------------------------------------------------------------------
 // 11. FUNCIONES AUXILIARES Y UTILIDADES
 // ---------------------------------------------------------------------------------
 
 function actualizarSelectores() {
-    const select = document.getElementById('customer-select');
-    if (!select) return;
+    // Actualizar selector de clientes
+    const customerSelect = document.getElementById('customer-select');
+    if (customerSelect) {
+        const selectedValue = customerSelect.value;
+        customerSelect.innerHTML = '<option value="">-- Seleccionar Cliente --</option>';
+        clientes.forEach(c => {
+            customerSelect.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
+        });
+        customerSelect.value = selectedValue;
+    }
 
-    const selectedValue = select.value;
-    select.innerHTML = '<option value="">-- Seleccionar Cliente --</option>';
-    clientes.forEach(c => {
-        select.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
-    });
-    select.value = selectedValue;
+    // Actualizar selector de productos en facturación
+    const productSelect = document.getElementById('product-select');
+    if (productSelect) {
+        const selectedValue = productSelect.value;
+        productSelect.innerHTML = '<option value="">-- Seleccionar Producto --</option>';
+        productos.forEach(p => {
+            if (p.cantidad > 0) { // Solo mostrar productos con stock
+                productSelect.innerHTML += `<option value="${p.id}">${p.nombre} - $${p.precio.toFixed(2)} (Stock: ${p.cantidad})</option>`;
+            }
+        });
+        productSelect.value = selectedValue;
+    }
 }
 
 function mostrarModal(title, body, size = 'normal') {
@@ -1461,6 +1276,12 @@ function actualizarInterfazAdmin() {
         if (adminSection.contains(document.getElementById('admin-login-prompt'))) {
             adminSection.removeChild(document.getElementById('admin-login-prompt'));
         }
+        
+        // Actualizar las tablas de administración inmediatamente
+        setTimeout(() => {
+            actualizarTablaAdminProductos();
+            actualizarTablaAdminClientes();
+        }, 100);
     } else {
         adminContent.classList.add('d-none');
         if (!document.getElementById('admin-login-prompt')) {
@@ -1488,29 +1309,6 @@ function verificarPermisosAdmin() {
     return true;
 }
 
-
-// ---------------------------------------------------------------------------------
-// 13. DATOS DE EJEMPLO PARA DEMOSTRACIÓN
-// ---------------------------------------------------------------------------------
-
-function cargarDatosEjemplo() {
-    if (productos.length === 0 && clientes.length === 0) {
-        console.log("Cargando datos de ejemplo...");
-        productos = [
-            { id: 1, nombre: "Laptop Pro X", precio: 1200, cantidad: 15, imagen: "https://i.blogs.es/a24a9c/macbook-pro-14-16-2023-applesfera-01/1366_2000.jpeg" },
-            { id: 2, nombre: "Smartphone Z", precio: 800, cantidad: 25, imagen: "https://media.revistagq.com/photos/650c1e15531953606369f0a9/16:9/w_2560%2Cc_limit/iPhone-15-Pro-Review-01.jpg" },
-            { id: 3, nombre: "Auriculares Inalámbricos", precio: 150, cantidad: 50, imagen: "https://static.independent.co.uk/2023/10/10/15/Sony%20WH-1000XM5%20copy.jpg" },
-            { id: 4, nombre: "Monitor Curvo 4K", precio: 600, cantidad: 10, imagen: "https://i.blogs.es/34438e/captura-de-pantalla-2022-01-04-a-las-12.39.05/1366_2000.jpeg" }
-        ];
-        clientes = [
-            { id: 1, nombre: "Tech Solutions Inc.", email: "contact@techsolutions.com", imagen: "" },
-            { id: 2, nombre: "Ana Pérez", email: "ana.perez@email.com", imagen: "" }
-        ];
-        guardarDatos();
-        actualizarTodasLasVistas();
-        mostrarNotificacion('Datos de ejemplo cargados.', 'info');
-    }
-}
 
 // ---------------------------------------------------------------------------------
 // EVENT LISTENERS GLOBALES
@@ -1597,3 +1395,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// ---------------------------------------------------------------------------------
+// 12. SISTEMA DE NOTIFICACIONES (MOVIDO A api.js)
+// ---------------------------------------------------------------------------------
+
+// La función mostrarNotificacion y sus helpers han sido movidos a public/js/api.js
+
+// ---------------------------------------------------------------------------------
+// FUNCIONES DE DEBUG
+// ---------------------------------------------------------------------------------
+
+// Función de debug para verificar estado de las tablas
+function debugTablas() {
+    console.log('=== DEBUG TABLAS ADMIN ===');
+    console.log('Productos:', productos.length);
+    console.log('Clientes:', clientes.length);
+    console.log('isAdmin:', isAdmin);
+    
+    const adminContent = document.getElementById('admin-content');
+    const productsTable = document.getElementById('admin-products-table');
+    const clientsTable = document.getElementById('admin-clients-table');
+    
+    console.log('Admin content visible:', !adminContent?.classList.contains('d-none'));
+    console.log('Products table exists:', !!productsTable);
+    console.log('Clients table exists:', !!clientsTable);
+    
+    if (productsTable) {
+        console.log('Products table rows:', productsTable.children.length);
+    }
+    if (clientsTable) {
+        console.log('Clients table rows:', clientsTable.children.length);
+    }
+}
+
+// ---------------------------------------------------------------------------------

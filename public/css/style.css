@@ -510,9 +510,25 @@ h2 {
    ================================================================================= */
 
 .admin-section {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 30px;
+}
+
+#admin-products, 
+#admin-clients {
+    background: white;
+    padding: 25px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+}
+
+#admin-products h3,
+#admin-clients h3 {
+    margin-bottom: 20px;
+    color: var(--amazon-blue);
+    border-bottom: 2px solid var(--amazon-orange);
+    padding-bottom: 10px;
 }
 
 .admin-table {
@@ -578,11 +594,14 @@ h2 {
     object-fit: cover;
     border-radius: 8px;
     border: 2px solid #e9ecef;
-    transition: transform 0.2s ease;
+    transition: transform 0.3s ease;
+    display: block;
+    margin: 0 auto;
 }
 
 .product-image:hover {
     transform: scale(1.1);
+    border-color: var(--amazon-orange);
 }
 
 .product-info {
@@ -919,11 +938,12 @@ h2 {
 
 .photo-preview {
     max-width: 100%;
-    height: auto;
-    margin-top: 15px;
-    border-radius: 4px;
-    border: 1px solid var(--border-color);
-    display: none; /* Oculta hasta que haya imagen */
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid var(--border-color);
+    display: block;
+    margin: 10px auto;
 }
 
 /* =================================================================================
@@ -1166,132 +1186,162 @@ h2 {
     font-style: italic;
 }
 
-@media (max-width: 768px) {
-    .header-content {
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    nav ul {
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-
-    .admin-section {
-        grid-template-columns: 1fr;
-    }
-
-    .admin-table {
-        font-size: 14px;
-    }
-
-    .admin-table th,
-    .admin-table td {
-        padding: 12px 8px;
-    }
-
-    .product-image {
-        width: 50px;
-        height: 50px;
-    }
-
-    .product-name {
-        font-size: 14px;
-    }
-
-    .product-description {
-        font-size: 11px;
-    }
-
-    .action-buttons {
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .btn-action {
-        width: 32px;
-        height: 32px;
-        font-size: 12px;
-    }
-
-    /* ...existing code... */
+/* Estilos mejorados para las tablas de administración */
+.client-info-cell, .product-info-cell {
+    text-align: left;
+    vertical-align: top;
 }
 
-@media (max-width: 480px) {
-    .modal {
-        padding: 5px;
-    }
+.client-info, .product-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
 
-    .modal-content {
-        padding: 15px;
-        border-radius: 0;
-        min-height: 100vh;
-        max-height: 100vh;
-    }
+.client-name, .product-name {
+    font-weight: bold;
+    font-size: 16px;
+    color: var(--amazon-blue);
+}
 
-    .geolocation-section {
-        margin-top: 20px;
-        padding-top: 15px;
-    }
+.client-details, .product-description {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.4;
+}
 
-    .location-info {
-        padding: 10px;
-        font-size: 13px;
-    }
+.email-cell a {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
 
-    .form-group input[type="text"],
-    .form-group input[type="number"],
-    .form-group input[type="email"],
-    .form-group input[type="password"],
-    .form-group select {
-        font-size: 16px; /* Evita zoom en iOS */
-        padding: 14px 12px;
-    }
+.email-cell a:hover {
+    color: var(--amazon-orange) !important;
+}
 
-    .photo-upload-section {
-        padding: 15px;
-    }
+/* Estilos para badges de categoría en tablas */
+.category-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: white;
+}
 
-    .modal-title {
-        font-size: 18px;
-        line-height: 1.3;
-    }
+.category-badge.tecnologia {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+}
 
-    .modal-subtitle {
-        font-size: 13px;
-    }
+.category-badge.audio {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+}
 
-    .invoice-header {
-        padding: 15px;
-    }
+.category-badge.monitores {
+    background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);
+}
 
-    .invoice-number {
-        font-size: 16px;
-        padding: 8px 15px;
-    }
+.category-badge.electrodomesticos {
+    background: linear-gradient(135deg, #fd7e14 0%, #e55a00 100%);
+}
 
-    .category-filters {
-        padding: 15px;
-    }
+.category-badge.sin-categoria {
+    background: linear-gradient(135deg, #6c757d 0%, #545b62 100%);
+}
 
-    .filter-buttons {
-        gap: 8px;
-    }
+/* Estilos para badges de stock */
+.stock-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: bold;
+    text-align: center;
+    min-width: 60px;
+}
 
-    .filter-btn {
-        padding: 8px 12px;
-        font-size: 13px;
-    }
+.stock-badge.stock-normal {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
 
-    .search-input, .search-btn {
-        padding: 12px 15px;
-        font-size: 14px;
-    }
+.stock-badge.stock-low {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
 
-    .products-catalog {
-        grid-template-columns: 1fr;
-        gap: 15px;
-    }
+.stock-badge.stock-out {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* Estilos para precios */
+.price-display {
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--amazon-orange);
+}
+
+/* Estilos mejorados para botones de acción */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-action {
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 6px 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-action i {
+    font-size: 14px;
+}
+
+.btn-edit {
+    color: var(--link-color);
+    border-color: var(--link-color);
+}
+
+.btn-edit:hover {
+    background: var(--link-color);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.btn-delete {
+    color: var(--error-color);
+    border-color: var(--error-color);
+}
+
+.btn-delete:hover {
+    background: var(--error-color);
+    color: white;
+    transform: translateY(-1px);
+}
+
+/* Estilos para celdas específicas */
+.product-image-cell, .category-cell, .price-cell, .stock-cell, .actions-cell, .email-cell {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.product-image {
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
 }
 
 /* =================================================================================
@@ -1406,10 +1456,11 @@ h2 {
 .photo-preview {
     max-width: 100%;
     max-height: 200px;
-    height: auto;
-    border-radius: 6px;
+    object-fit: cover;
+    border-radius: 8px;
     border: 2px solid var(--border-color);
     display: block;
+    margin: 10px auto;
 }
 
 .photo-remove-btn {
@@ -2134,6 +2185,49 @@ h2 {
         width: 32px;
         height: 32px;
         font-size: 12px;
+    }
+
+    /* Estilos para vista previa de imágenes en formularios */
+    .photo-preview {
+        max-width: 100%;
+        max-height: 200px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 2px solid var(--border-color);
+        display: block;
+        margin: 10px auto;
+    }
+
+    #camera-container-product,
+    #camera-container-client {
+        margin-top: 10px;
+        text-align: center;
+        min-height: 50px;
+        border: 1px dashed #ddd;
+        border-radius: 8px;
+        padding: 10px;
+        background: #f9f9f9;
+    }
+
+    #camera-container-product img,
+    #camera-container-client img {
+        max-width: 100%;
+        max-height: 150px;
+        object-fit: cover;
+        border-radius: 4px;
+    }
+
+    /* Asegurar que las tablas de admin son visibles */
+    .admin-table tbody {
+        background: white;
+    }
+
+    .admin-table tbody tr {
+        display: table-row;
+    }
+
+    .admin-table tbody td {
+        display: table-cell;
     }
 
     /* ...existing code... */
