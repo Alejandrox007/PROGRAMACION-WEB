@@ -320,3 +320,22 @@ function mostrarMapaUbicacion(lat, lng) {
     window.open(url, '_blank');
     mostrarNotificacion('Abriendo ubicación en Google Maps...', 'info');
 }
+
+function limpiarUbicacion() {
+    facturaActual.ubicacion = null;
+    const locationStatus = document.getElementById('location-status');
+    const locationDetails = document.getElementById('location-details');
+    const captureBtn = document.getElementById('capture-location-btn');
+
+    if (locationStatus) {
+        locationStatus.textContent = 'Ubicación no capturada';
+        locationStatus.className = 'location-status';
+    }
+    if (locationDetails) {
+        locationDetails.classList.add('d-none');
+    }
+    if (captureBtn) {
+        captureBtn.disabled = false;
+        captureBtn.innerHTML = '<i class="fas fa-location-arrow"></i> Capturar Ubicación';
+    }
+}

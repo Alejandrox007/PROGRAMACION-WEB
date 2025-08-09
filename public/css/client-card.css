@@ -1,0 +1,36 @@
+/* Estilos para la previsualización del cliente seleccionado en la facturación */
+.client-preview {
+    margin-top: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.client-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.client-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--amazon-orange);
+    background-color: #fff;
+}
+
+.client-details h4 {
+    margin: 0 0 5px 0;
+    font-size: 16px;
+    color: var(--amazon-blue);
+}
+
+.client-details p {
+    margin: 0 0 3px 0;
+    font-size: 13px;
+    color: #6c757d;
+}

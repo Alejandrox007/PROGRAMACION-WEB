@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Index de CRUD DE USUARIOS </title>
+    <link rel="stylesheet" href="/public/css/styles.css">
+    <link rel="stylesheet" href="public/lib/bootstrap-5.3.5-dist/css/bootstrap.min.css">
+</head>
+<body>
+
+    <div class="container py-5">
+        <h1 class="text-center mb-4">Sistema de Gestión de Usuarios</h1>
+        <div class="card">
+            <div class="card-header">
+                <h1 class="text-center">CRUD DE USUARIOS</h1>
+            </div>
+            <div class="card-body">
+                <p class="text-center">Bienvenido al sistema de gestión de usuarios. Aquí puedes crear, leer, actualizar y eliminar usuarios.</p>
+                <div class="text-center">
+                    <a href="./app/crear.php" class="btn btn-primary">Crear Usuario</a>
+                    <a href="./app/listar.php" class="btn btn-secondary">Ver Usuarios</a>
+                    <button id="mostrarNotas" class="btn btn-danger">Ver Notas</button>
+                    
+                </div>
+                <div class="d-grid gap-2 pt-2">
+                    <a href="./app/ingresarnotas.php" class="btn btn-dark">Ingresar Notas</a>
+                </div>
+                <div id="tablaNotas"></div>
+            </div>
+    </div>
+
+    </div>
+
+<script src="./public/lib/bootstrap-5.3.5-dist/js/bootstrap.js.map"></script>   
+<script>
+        document.getElementById('mostrarNotas').addEventListener('click', function(e) {
+            e.preventDefault();
+            const tablaNotas = document.getElementById('tablaNotas');
+            tablaNotas.innerHTML = '';
+            
+            fetch('./app/mostrarnotas.php')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Error al cargar las notas');
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    tablaNotas.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    tablaNotas.innerHTML = `
+                        <div class="alert alert-danger">
+                            Error al cargar las notas: ${error.message}
+                        </div>
+                    `;
+                });
+        });
+    </script> 
+</body>
+</html>

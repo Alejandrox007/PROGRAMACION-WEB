@@ -398,6 +398,89 @@ h2 {
     display: none !important;
 }
 
+/* Admin Login Styles */
+.admin-login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 300px;
+    width: 100%;
+    padding: 20px;
+}
+
+.admin-login-box {
+    background-color: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    padding: 30px;
+    text-align: center;
+    max-width: 400px;
+    width: 100%;
+    border-top: 5px solid var(--amazon-orange);
+}
+
+.admin-login-box h2 {
+    color: var(--amazon-blue);
+    margin-bottom: 15px;
+}
+
+.admin-login-box p {
+    margin-bottom: 25px;
+    color: #555;
+}
+
+.btn-login-admin {
+    padding: 12px 24px;
+    font-size: 16px;
+    width: 100%;
+    margin-top: 10px;
+}
+
+/* Admin Login Form */
+.admin-login-form {
+    text-align: center;
+    padding: 20px 10px;
+}
+
+.admin-login-icon {
+    font-size: 48px;
+    color: var(--amazon-blue);
+    margin-bottom: 15px;
+}
+
+.admin-login-form h3 {
+    color: var(--amazon-blue);
+    margin-bottom: 20px;
+    font-size: 22px;
+}
+
+.admin-login-form .form-group {
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+.admin-login-form label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #555;
+}
+
+.admin-login-form .form-control {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.admin-login-form .btn-block {
+    width: 100%;
+    margin-top: 20px;
+    padding: 12px;
+    font-size: 16px;
+}
+
 /* Estados vacíos del catálogo */
 .empty-catalog {
     text-align: center;
@@ -811,10 +894,13 @@ h2 {
     align-items: center;
     padding: 20px;
     box-sizing: border-box;
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .modal.active {
     display: flex;
+    opacity: 1;
 }
 
 .modal-content {
@@ -1053,16 +1139,52 @@ h2 {
    ================================================================================= */
 
 .invoice-history-item {
-    background-color: #f7f7f7;
+    background: white;
+    border-radius: 8px;
     padding: 20px;
-    border-radius: var(--border-radius);
-    margin-bottom: 15px;
-    border: 1px solid var(--border-color);
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid #e9ecef;
 }
 
-.invoice-history-item h3 {
-    margin-bottom: 10px;
+.invoice-history-item .invoice-header {
+    border-bottom: 2px solid #e9ecef;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+}
+
+.invoice-history-item .invoice-header h4 {
     color: var(--amazon-blue);
+    margin: 0;
+}
+
+.invoice-history-item .invoice-products {
+    margin: 15px 0;
+}
+
+.invoice-history-item .invoice-products ul {
+    list-style: none;
+    padding: 0;
+}
+
+.invoice-history-item .invoice-products li {
+    padding: 5px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.invoice-history-item .invoice-totals {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 4px;
+    margin: 15px 0;
+}
+
+.invoice-history-item .invoice-totals .total {
+    color: var(--amazon-orange);
+    font-size: 1.2em;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #dee2e6;
 }
 
 /* =================================================================================
@@ -2087,56 +2209,120 @@ h2 {
 
 /* Vista previa */
 .invoice-preview {
-    font-size: 13px;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .preview-header {
     text-align: center;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #e9ecef;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid var(--amazon-blue);
 }
 
-.preview-header h5 {
-    margin: 0;
+.preview-header h3 {
     color: var(--amazon-blue);
+    margin: 0;
+    font-size: 24px;
 }
 
-.preview-client,
-.preview-items {
-    margin-bottom: 10px;
+.preview-header p {
+    margin: 5px 0;
+    color: #666;
 }
 
-.preview-client p,
-.preview-items p {
-    margin: 3px 0;
-}
-
-/* Estados y notificaciones del sistema */
-.invoice-status {
-    padding: 10px;
+.preview-client-section {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
     border-radius: 6px;
-    margin-bottom: 15px;
+}
+
+.preview-client-section h4 {
+    color: var(--amazon-blue);
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+.client-details p {
+    margin: 5px 0;
+    font-size: 14px;
+}
+
+.preview-products {
+    margin-bottom: 20px;
+}
+
+.preview-products h4 {
+    color: var(--amazon-blue);
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+.preview-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+.preview-table th {
+    background: #f8f9fa;
+    padding: 8px;
+    text-align: left;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.preview-table td {
+    padding: 8px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.preview-table tr:last-child td {
+    border-bottom: none;
+}
+
+.preview-totals {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 2px solid #dee2e6;
+}
+
+.total-line {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.total-final {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #dee2e6;
+    font-weight: bold;
+    font-size: 16px;
+    color: var(--amazon-orange);
+}
+
+.preview-additional-info {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #dee2e6;
+    font-size: 14px;
+}
+
+.preview-additional-info p {
+    margin: 5px 0;
+    color: #666;
+}
+
+.no-items {
     text-align: center;
-    font-weight: 500;
-}
-
-.invoice-status.success {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
-}
-
-.invoice-status.warning {
-    background: #fff3cd;
-    color: #856404;
-    border: 1px solid #ffeaa7;
-}
-
-.invoice-status.error {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
+    color: #666;
+    font-style: italic;
+    padding: 20px 0;
 }
 
 @media (max-width: 768px) {
@@ -2320,4 +2506,122 @@ h2 {
     }
 
     /* ...existing code... */
+}
+
+/* Estilos para la vista previa de factura */
+.invoice-preview {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.preview-header {
+    text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid var(--amazon-blue);
+}
+
+.preview-header h3 {
+    color: var(--amazon-blue);
+    margin: 0;
+    font-size: 24px;
+}
+
+.preview-header p {
+    margin: 5px 0;
+    color: #666;
+}
+
+.preview-client-section {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.preview-client-section h4 {
+    color: var(--amazon-blue);
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+.client-details p {
+    margin: 5px 0;
+    font-size: 14px;
+}
+
+.preview-products {
+    margin-bottom: 20px;
+}
+
+.preview-products h4 {
+    color: var(--amazon-blue);
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+.preview-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+.preview-table th {
+    background: #f8f9fa;
+    padding: 8px;
+    text-align: left;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.preview-table td {
+    padding: 8px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.preview-table tr:last-child td {
+    border-bottom: none;
+}
+
+.preview-totals {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 2px solid #dee2e6;
+}
+
+.total-line {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.total-final {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #dee2e6;
+    font-weight: bold;
+    font-size: 16px;
+    color: var(--amazon-orange);
+}
+
+.preview-additional-info {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #dee2e6;
+    font-size: 14px;
+}
+
+.preview-additional-info p {
+    margin: 5px 0;
+    color: #666;
+}
+
+.no-items {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    padding: 20px 0;
 }

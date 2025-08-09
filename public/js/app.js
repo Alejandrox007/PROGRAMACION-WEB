@@ -69,6 +69,7 @@ function guardarDatos() {
         localStorage.setItem('amazonBusiness_productos', JSON.stringify(productos));
         localStorage.setItem('amazonBusiness_clientes', JSON.stringify(clientes));
         localStorage.setItem('amazonBusiness_facturas', JSON.stringify(facturas));
+        localStorage.setItem('amazonBusiness_facturaActual', JSON.stringify(facturaActual));
         localStorage.setItem('adminLoggedIn', JSON.stringify(isAdmin));
     } catch (error) {
         console.error('Error al guardar datos en localStorage:', error);
@@ -81,11 +82,27 @@ function cargarDatos() {
         productos = JSON.parse(localStorage.getItem('amazonBusiness_productos')) || [];
         clientes = JSON.parse(localStorage.getItem('amazonBusiness_clientes')) || [];
         facturas = JSON.parse(localStorage.getItem('amazonBusiness_facturas')) || [];
+        facturaActual = JSON.parse(localStorage.getItem('amazonBusiness_facturaActual')) || {
+            cliente: null,
+            productos: [],
+            fecha: null,
+            ubicacion: null,
+            metodoPago: 'transferencia',
+            prioridad: 'normal'
+        };
     } catch (error) {
         console.error('Error al cargar datos de localStorage:', error);
         productos = [];
         clientes = [];
         facturas = [];
+        facturaActual = {
+            cliente: null,
+            productos: [],
+            fecha: null,
+            ubicacion: null,
+            metodoPago: 'transferencia',
+            prioridad: 'normal'
+        };
     }
 
     // Inicializar productos filtrados
@@ -109,26 +126,31 @@ function actualizarTodasLasVistas() {
 // ---------------------------------------------------------------------------------
 
 function showSection(sectionName) {
+    console.log('Mostrando sección:', sectionName);
+    
     document.querySelectorAll('main section').forEach(s => s.classList.remove('active'));
-    document.querySelector(`section#${sectionName}`).classList.add('active');
-
-    document.querySelectorAll('header nav a').forEach(a => a.classList.remove('active'));
-    document.querySelector(`#nav-${sectionName}`).classList.add('active');
-
-    if (sectionName === 'admin' && !isAdmin) {
-        mostrarLoginAdmin();
+    const section = document.querySelector(`section#${sectionName}`);
+    if (section) {
+        section.classList.add('active');
     }
 
-    // Actualizar vista específica según la sección
-    if (sectionName === 'carrito') {
-        actualizarVistaCarrito();
-    } else if (sectionName === 'facturacion') {
-        actualizarVistaCheckout();
-        actualizarInfoClienteSeleccionado();
-    } else if (sectionName === 'admin' && isAdmin) {
-        // Actualizar las tablas del panel de administración
-        actualizarTablaAdminProductos();
-        actualizarTablaAdminClientes();
+    document.querySelectorAll('header nav a').forEach(a => a.classList.remove('active'));
+    const navLink = document.querySelector(`#nav-${sectionName}`);
+    if (navLink) {
+        navLink.classList.add('active');
+    }
+
+    if (sectionName === 'admin') {
+        if (!isAdmin) {
+            // Si no está autenticado, mostrar el formulario de login
+            mostrarLoginAdmin();
+        } else {
+            // Mostrar contenido de admin y actualizar tablas
+            document.getElementById('admin-content').classList.remove('d-none');
+            actualizarTablaAdminProductos();
+            actualizarTablaAdminClientes();
+            actualizarVistaFacturas();
+        }
     }
 }
 
@@ -243,7 +265,297 @@ function ocultarBotonLimpiar() {
 
 
 // ---------------------------------------------------------------------------------
-// 6. GESTIÓN DE PRODUCTOS (CRUD) - REFACTORIZADO PARA MODAL
+// FUNCIONES PARA CREAR CLIENTE DESDE FACTURACIÓN
+// ---------------------------------------------------------------------------------
+
+// Función para mostrar u ocultar campos según el tipo de cliente
+function toggleClienteFields(tipo) {
+    const regularFields = document.querySelectorAll('.cliente-regular-field');
+    const nombreInput = document.getElementById('clientName');
+    
+    if (tipo === 'regular') {
+        regularFields.forEach(field => field.style.display = 'block');
+        document.getElementById('clientEmail').required = true;
+        if (nombreInput.value === 'Consumidor Final') {
+            nombreInput.value = '';
+        }
+    } else {
+        regularFields.forEach(field => field.style.display = 'none');
+        document.getElementById('clientEmail').required = false;
+        
+        // Si es consumidor final, establecer un nombre predeterminado si está vacío
+        if (!nombreInput.value.trim() || nombreInput.value.startsWith('Consumidor Final')) {
+            nombreInput.value = 'Consumidor Final';
+        }
+    }
+}
+
+// Función para mostrar el modal de nuevo cliente desde facturación
+function mostrarNuevoClienteFactura() {
+    console.log("Mostrando formulario de nuevo cliente");
+    
+    // Preparar el contenido del modal
+    const modalTitle = 'Agregar Nuevo Cliente';
+    const modalContent = document.querySelector('.modal-content');
+    const modal = document.getElementById('editModal');
+    
+    // Establecer el título
+    document.getElementById('modal-title').innerHTML = modalTitle;
+    
+    // Establecer el cuerpo del modal
+    document.getElementById('modal-body').innerHTML = `
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <i class="fas fa-user-plus"></i> Nuevo Cliente para Factura
+            </h3>
+            <p class="modal-subtitle">
+                Complete la información del cliente
+            </p>
+        </div>
+        
+        <form id="factura-client-form">
+            <!-- Tipo de cliente -->
+            <div class="form-group">
+                <label>
+                    <i class="fas fa-user-tag"></i> Tipo de Cliente
+                </label>
+                <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <input type="radio" id="cliente-regular" name="tipo-cliente" value="regular" checked 
+                               onchange="toggleClienteFields(this.value)">
+                        <label for="cliente-regular">Cliente Regular</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="consumidor-final" name="tipo-cliente" value="consumidor" 
+                               onchange="toggleClienteFields(this.value)">
+                        <label for="consumidor-final">Consumidor Final</label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Información básica -->
+            <div class="form-row">
+                <div class="form-group required">
+                    <label for="clientName">
+                        <i class="fas fa-user"></i> Nombre Completo
+                    </label>
+                    <input 
+                        type="text" 
+                        id="clientName" 
+                        placeholder="Ej: Juan Pérez"
+                        required
+                        autocomplete="name"
+                    >
+                </div>
+                
+                <div class="form-group required cliente-regular-field">
+                    <label for="clientEmail">
+                        <i class="fas fa-envelope"></i> Correo Electrónico
+                    </label>
+                    <input 
+                        type="email" 
+                        id="clientEmail" 
+                        placeholder="ejemplo@correo.com"
+                        required
+                        autocomplete="email"
+                    >
+                </div>
+            </div>
+
+            <!-- Información adicional -->
+            <div class="form-row cliente-regular-field">
+                <div class="form-group">
+                    <label for="clientPhone">
+                        <i class="fas fa-phone"></i> Teléfono (Opcional)
+                    </label>
+                    <input 
+                        type="text" 
+                        id="clientPhone" 
+                        placeholder="(123) 456-7890"
+                        autocomplete="tel"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="clientCedula">
+                        <i class="fas fa-id-card"></i> Cédula (Opcional)
+                    </label>
+                    <input 
+                        type="text" 
+                        id="clientCedula" 
+                        placeholder="1234567890"
+                        maxlength="10"
+                    >
+                </div>
+            </div>
+            
+            <!-- Foto del cliente -->
+            <div class="form-group cliente-regular-field">
+                <label>
+                    <i class="fas fa-camera"></i> Foto del Cliente (Opcional)
+                </label>
+                <div class="photo-upload-section">
+                    <div class="photo-upload-buttons">
+                        <button type="button" class="btn btn-secondary" onclick="startCamera('client')">
+                            <i class="fas fa-camera"></i> Tomar Foto
+                        </button>
+                        <input type="file" accept="image/*" onchange="loadImageFromFile(this, 'client')" style="display:none;" id="client-file-input">
+                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('client-file-input').click()">
+                            <i class="fas fa-upload"></i> Subir Imagen
+                        </button>
+                    </div>
+                    <div id="camera-container-client" class="photo-preview-container" style="display: none;">
+                        <!-- La vista previa de la foto aparecerá aquí -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Agregar Cliente
+                </button>
+            </div>
+        </form>
+    `;
+    
+    // Mostrar el modal
+    modalContent.className = `modal-content large`;
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    
+    // Establecer el manejador de eventos para el formulario
+    setTimeout(() => {
+        const form = document.getElementById('factura-client-form');
+        if (form) {
+            form.addEventListener('submit', crearClienteDesdeFactura);
+        }
+        
+        // Enfocar el primer campo
+        document.getElementById('clientName').focus();
+    }, 100);
+}
+
+// Manejador para crear un nuevo cliente desde la factura
+function crearClienteDesdeFactura(e) {
+    e.preventDefault();
+    
+    // Obtener valores del formulario
+    const tipoCliente = document.querySelector('input[name="tipo-cliente"]:checked').value;
+    let nombre = document.getElementById('clientName').value.trim();
+    let email = "";
+    let telefono = "";
+    let cedula = "";
+    let imagen = "";
+    
+    // Solo procesar estos campos si es cliente regular
+    if (tipoCliente === 'regular') {
+        email = document.getElementById('clientEmail').value.trim();
+        telefono = document.getElementById('clientPhone')?.value.trim() || "";
+        cedula = document.getElementById('clientCedula')?.value.trim() || "";
+        imagen = document.querySelector('#camera-container-client .photo-preview')?.src || '';
+        
+        // Validaciones para cliente regular
+        if (!email) {
+            mostrarNotificacion('El email es requerido para clientes regulares.', 'error');
+            document.getElementById('clientEmail').focus();
+            return;
+        }
+
+        // Validar formato de email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            mostrarNotificacion('Por favor, ingresa un email válido.', 'error');
+            document.getElementById('clientEmail').focus();
+            return;
+        }
+
+        // Validar cédula si se proporciona
+        if (cedula && !/^\d{10}$/.test(cedula)) {
+            mostrarNotificacion('La cédula debe tener exactamente 10 dígitos.', 'error');
+            document.getElementById('clientCedula').focus();
+            return;
+        }
+    } else {
+        // Para consumidor final, usar valores predeterminados
+        nombre = "Consumidor Final";
+        email = "consumidor.final@sistema.local";
+        telefono = "0000000000";
+        cedula = "0000000000";
+        imagen = ''; // Sin imagen para consumidor final
+    }
+
+    // Validación común
+    if (!nombre) {
+        mostrarNotificacion('El nombre es requerido.', 'error');
+        document.getElementById('clientName').focus();
+        return;
+    }
+
+    // Crear el nuevo cliente
+    const nuevoCliente = {
+        id: Date.now(),
+        nombre,
+        email,
+        telefono,
+        cedula,
+        imagen: imagen,
+        tipo: tipoCliente,
+        fechaRegistro: new Date().toISOString()
+    };
+    
+    // Agregar a la lista de clientes siempre, independientemente del tipo
+    clientes.push(nuevoCliente);
+    
+    // Establecer el cliente para la factura actual
+    if (window.facturaActual) {
+        window.facturaActual.cliente = nuevoCliente;
+    }
+    
+    // Actualizar la interfaz con la información del cliente
+    actualizarInterfazClienteFactura(nuevoCliente);
+    
+    guardarDatos();
+    actualizarTodasLasVistas();
+    closeModal();
+    mostrarNotificacion('✅ Cliente agregado a la factura', 'success');
+}
+
+// Función para actualizar la interfaz con la información del cliente
+function actualizarInterfazClienteFactura(cliente) {
+    if (!cliente) return;
+    
+    // Actualizar la tarjeta de información del cliente
+    const clienteInfoDiv = document.getElementById('selected-client-info');
+    if (clienteInfoDiv) {
+        // Mostrar la vista previa del cliente
+        clienteInfoDiv.classList.remove('d-none');
+        
+        // Actualizar los detalles
+        document.getElementById('client-avatar').src = cliente.imagen || 'https://via.placeholder.com/100';
+        document.getElementById('client-name').textContent = cliente.nombre;
+        document.getElementById('client-email').textContent = cliente.email || 'No especificado';
+        document.getElementById('client-phone').textContent = cliente.telefono || 'No especificado';
+        document.getElementById('client-cedula').textContent = cliente.cedula || 'No especificado';
+    }
+    
+    // Actualizar vista previa de factura
+    const previewClientName = document.getElementById('preview-client-name');
+    const previewClientEmail = document.getElementById('preview-client-email');
+    
+    if (previewClientName) previewClientName.textContent = cliente.nombre;
+    if (previewClientEmail) previewClientEmail.textContent = cliente.email || 'No especificado';
+
+    // Actualizar totales en la vista previa
+    actualizarVistaPrevia();
+}
+
+// ---------------------------------------------------------------------------------
+// GESTIÓN DE PRODUCTOS (CRUD) - REFACTORIZADO PARA MODAL
 // ---------------------------------------------------------------------------------
 
 function showEditProductModal(id = null) {
@@ -378,7 +690,6 @@ function eliminarProducto(id) {
     }
 }
 
-
 // ---------------------------------------------------------------------------------
 // 7. GESTIÓN DE CLIENTES (CRUD) - REFACTORIZADO PARA MODAL
 // ---------------------------------------------------------------------------------
@@ -477,9 +788,11 @@ function showEditClientModal(id = null) {
                             <i class="fas fa-upload"></i> Subir Imagen
                         </button>
                         ${cliente.imagen ? `<button type="button" class="btn btn-danger" onclick="removeClientPhoto()"><i class="fas fa-trash"></i> Remover</button>` : ''}
+
                     </div>
                     <div id="camera-container-client" class="photo-preview-container" style="${cliente.imagen ? 'display: block;' : 'display: none;'}">
                         ${cliente.imagen ? `<img src="${cliente.imagen}" alt="Preview" class="photo-preview"><button type="button" class="photo-remove-btn" onclick="removeClientPhoto()">×</button>` : ''}
+
                     </div>
                     ${!cliente.imagen ? '<p style="color: #666; font-size: 14px; margin: 0;">No se ha seleccionado ninguna imagen</p>' : ''}
                 </div>
@@ -653,7 +966,6 @@ function removeClientPhoto() {
     }
 }
 
-
 // ---------------------------------------------------------------------------------
 // 8. GESTIÓN DE CARRITO Y FACTURACIÓN - SEPARADOS
 // ---------------------------------------------------------------------------------
@@ -678,6 +990,7 @@ function agregarAlCarrito(productoId) {
     actualizarVistaCarrito();
     actualizarInfoCarrito();
     mostrarNotificacion(`${producto.nombre} agregado al carrito.`, 'success');
+    guardarDatos();
 }
 
 function cambiarCantidadCarrito(productoId, cambio) {
@@ -697,6 +1010,7 @@ function cambiarCantidadCarrito(productoId, cambio) {
     actualizarVistaCarrito();
     actualizarVistaCheckout();
     actualizarInfoCarrito();
+    guardarDatos();
 }
 
 function vaciarCarrito() {
@@ -711,6 +1025,7 @@ function vaciarCarrito() {
         actualizarVistaCheckout();
         actualizarInfoCarrito();
         mostrarNotificacion('Carrito vaciado.', 'info');
+        guardarDatos();
     }
 }
 
@@ -719,12 +1034,7 @@ function procederAlPago() {
         mostrarNotificacion('El carrito está vacío.', 'error');
         return;
     }
-    showSection('facturacion');
-    actualizarVistaCheckout();
-}
-
-function volverAlCarrito() {
-    showSection('carrito');
+    window.location.href = 'factura.html';
 }
 
 function procesarPedido() {
@@ -740,27 +1050,28 @@ function procesarPedido() {
 
     const cliente = clientes.find(c => c.id == clienteId);
     const subtotal = facturaActual.productos.reduce((acc, p) => acc + (p.precio * p.cantidad), 0);
-    const impuesto = subtotal * 0.15;
+    const impuesto = subtotal * 0.12; // Corregido a 12%
     const total = subtotal + impuesto;
 
     const nuevaFactura = {
-        id: Date.now(),
+        id: `FAC-${Date.now()}`,
         cliente,
         productos: [...facturaActual.productos],
         subtotal,
         impuesto,
         total,
         fecha: new Date().toISOString(),
+        metodoPago: facturaActual.metodoPago,
         ubicacion: facturaActual.ubicacion
     };
 
     facturas.push(nuevaFactura);
 
-    // Actualizar stock de productos
-    nuevaFactura.productos.forEach(itemCarrito => {
-        const productoOriginal = productos.find(p => p.id === itemCarrito.id);
-        if (productoOriginal) {
-            productoOriginal.cantidad -= itemCarrito.cantidad;
+    // Actualizar stock
+    nuevaFactura.productos.forEach(pFactura => {
+        const pGlobal = productos.find(p => p.id === pFactura.id);
+        if (pGlobal) {
+            pGlobal.cantidad -= pFactura.cantidad;
         }
     });
 
@@ -768,7 +1079,7 @@ function procesarPedido() {
     enviarNotificacionFactura(nuevaFactura);
     limpiarFactura();
     actualizarTodasLasVistas();
-    showSection('historial');
+    window.location.href = 'index.html#admin';
     mostrarNotificacion('¡Compra finalizada! Factura generada.', 'success');
 }
 
@@ -781,9 +1092,138 @@ function limpiarFactura() {
         metodoPago: 'transferencia',
         prioridad: 'normal'
     };
-    actualizarVistaCarrito();
-    limpiarUbicacion(); // Agregar esta línea
+    // Si estamos en factura.html, limpiar la interfaz
+    if (window.location.pathname.includes('factura.html')) {
+        actualizarVistaFactura();
+        document.getElementById('selected-client-info').classList.add('d-none');
+        generarNumeroFactura();
+    } else {
+        actualizarVistaCarrito();
+    }
+    limpiarUbicacion();
+    mostrarNotificacion('Factura limpiada', 'info');
+    guardarDatos();
 }
+
+function generarFactura() {
+    if (!facturaActual.cliente) {
+        mostrarNotificacion('Por favor, seleccione un cliente para la factura.', 'error');
+        return;
+    }
+
+    if (facturaActual.productos.length === 0) {
+        mostrarNotificacion('No hay productos en la factura.', 'error');
+        return;
+    }
+
+    const subtotal = facturaActual.productos.reduce((sum, p) => sum + (p.precio * p.cantidad), 0);
+    const iva = subtotal * 0.12;
+    const total = subtotal + iva;
+
+    const nuevaFactura = {
+        id: `FAC-${Date.now()}`,
+        cliente: facturaActual.cliente,
+        productos: [...facturaActual.productos],
+        subtotal,
+        iva,
+        total,
+        metodoPago: document.getElementById('payment-method').value,
+        ubicacion: facturaActual.ubicacion,
+        fecha: new Date().toISOString()
+    };
+
+    facturas.push(nuevaFactura);
+
+    // Actualizar stock
+    nuevaFactura.productos.forEach(pFactura => {
+        const pGlobal = productos.find(p => p.id === pFactura.id);
+        if (pGlobal) {
+            pGlobal.cantidad -= pFactura.cantidad;
+        }
+    });
+
+    guardarDatos();
+    enviarNotificacionFactura(nuevaFactura);
+    
+    console.log('Factura Generada:', nuevaFactura);
+    mostrarNotificacion(`Factura ${nuevaFactura.id} generada con éxito.`, 'success');
+
+    limpiarFactura();
+    
+    setTimeout(() => {
+        window.location.href = 'index.html#admin';
+    }, 1000);
+}
+
+
+function agregarProductoFactura(productoId) {
+    const cantidadInput = document.getElementById('product-quantity');
+    const cantidad = parseInt(cantidadInput.value) || 1;
+
+    const producto = productos.find(p => p.id === productoId);
+    if (!producto) {
+        mostrarNotificacion('Producto no encontrado.', 'error');
+        return;
+    }
+
+    if (cantidad <= 0) {
+        mostrarNotificacion('La cantidad debe ser mayor a 0.', 'error');
+        return;
+    }
+
+    if (cantidad > producto.cantidad) {
+        mostrarNotificacion('No hay suficiente stock disponible.', 'error');
+        return;
+    }
+
+    const productoEnFactura = facturaActual.productos.find(p => p.id === productoId);
+    if (productoEnFactura) {
+        if ((productoEnFactura.cantidad + cantidad) > producto.cantidad) {
+            mostrarNotificacion('La cantidad total excede el stock.', 'error');
+            return;
+        }
+        productoEnFactura.cantidad += cantidad;
+    } else {
+        facturaActual.productos.push({ ...producto, cantidad });
+    }
+
+    actualizarVistaFactura();
+    mostrarNotificacion(`Se agregó ${cantidad} unidad(es) de ${producto.nombre} a la factura.`, 'success');
+    guardarDatos();
+}
+
+function eliminarProductoFactura(productoId) {
+    const index = facturaActual.productos.findIndex(p => p.id === productoId);
+    if (index > -1) {
+        facturaActual.productos.splice(index, 1);
+        actualizarVistaFactura();
+        mostrarNotificacion('Producto eliminado de la factura.', 'info');
+        guardarDatos();
+    } else {
+        mostrarNotificacion('Producto no encontrado en la factura.', 'error');
+    }
+}
+
+function cambiarCantidadProductoFactura(productoId, cambio) {
+    const itemEnFactura = facturaActual.productos.find(p => p.id === productoId);
+    const productoStock = productos.find(p => p.id === productoId);
+
+    if (itemEnFactura) {
+        const nuevaCantidad = itemEnFactura.cantidad + cambio;
+        if (nuevaCantidad <= 0) {
+            eliminarProductoFactura(productoId);
+            return;
+        }
+        if (nuevaCantidad > productoStock.cantidad) {
+            mostrarNotificacion('Cantidad máxima de stock alcanzada.', 'warning');
+            return;
+        }
+        itemEnFactura.cantidad = nuevaCantidad;
+    }
+    actualizarVistaFactura();
+    guardarDatos();
+}
+
 
 // ---------------------------------------------------------------------------------
 // 9. RENDERIZADO Y ACTUALIZACIÓN DE VISTAS - SEPARADAS
@@ -791,11 +1231,15 @@ function limpiarFactura() {
 
 function actualizarVistaProductos() {
     const container = document.getElementById('products-catalog');
+    if (!container) {
+        console.error('Container products-catalog not found');
+        return;
+    }
+
+    const productosAMostrar = productosFiltrados.length > 0 ? productosFiltrados : productos;
+    
     container.innerHTML = '';
-    
-    // Usar productosFiltrados si existe, si no usar todos los productos
-    const productosAMostrar = productosFiltrados.length > 0 || productosFiltrados === productos ? productosFiltrados : productos;
-    
+
     if (productosAMostrar.length === 0) {
         container.innerHTML = `
             <div class="empty-catalog">
@@ -809,43 +1253,12 @@ function actualizarVistaProductos() {
         `;
         return;
     }
-    
-    productosAMostrar.forEach(producto => {
-        const card = document.createElement('div');
-        card.className = 'product-card';
-        
-        // Determinar estado del stock
-        let stockClass = 'in-stock';
-        let stockText = `Stock: ${producto.cantidad}`;
-        if (producto.cantidad === 0) {
-            stockClass = 'out-of-stock';
-            stockText = 'Agotado';
-        } else if (producto.cantidad <= 5) {
-            stockClass = 'low-stock';
-            stockText = `Últimas ${producto.cantidad} unidades`;
-        }
-        
-        // Obtener categoría para el badge
-        const categoria = producto.categoria || 'sin-categoria';
-        const categoriaNombre = categoria.charAt(0).toUpperCase() + categoria.slice(1);
-        
-        // Obtener color de categoría
-        const colorCategoria = obtenerColorCategoria(categoria);
-        
-        card.innerHTML = `
-            <div class="product-card-category" style="background: ${colorCategoria};">${categoriaNombre}</div>
-            <img src="${producto.imagen || 'https://via.placeholder.com/300x200.png?text=Sin+Imagen'}" 
-                 alt="${producto.nombre}" 
-                 class="product-card-img"
-                 onclick="mostrarDetalleProducto(${producto.id})">
-            <div class="product-card-body">
-                <h3 class="product-card-title">${producto.nombre}</h3>
                 ${producto.descripcion ? `<p class="product-card-description">${producto.descripcion}</p>` : ''}
                 <p class="product-card-price">$${producto.precio.toFixed(2)}</p>
                 <p class="product-card-stock ${stockClass}">${stockText}</p>
                 <div class="product-card-actions">
                     <button class="btn btn-primary" 
-                            onclick="agregarAlCarrito(${producto.id})" 
+                            onclick="agregarAlCarrito(${producto.id})"
                             ${producto.cantidad === 0 ? 'disabled' : ''}>
                         <i class="fas fa-cart-plus"></i> 
                         ${producto.cantidad === 0 ? 'Agotado' : 'Agregar al Carrito'}
@@ -853,34 +1266,21 @@ function actualizarVistaProductos() {
                 </div>
             </div>
         `;
+        
         container.appendChild(card);
     });
 }
 
-// Función para mostrar detalle del producto
-function mostrarDetalleProducto(id) {
-    const producto = productos.find(p => p.id === id);
-    if (!producto) return;
-    
-    const stockClass = producto.cantidad === 0 ? 'out-of-stock' : 
-                      producto.cantidad <= 5 ? 'low-stock' : 'in-stock';
-    const stockText = producto.cantidad === 0 ? 'Agotado' : 
-                     producto.cantidad <= 5 ? `Últimas ${producto.cantidad} unidades` : 
-                     `Stock: ${producto.cantidad}`;
-    
+// Función para mostrar el detalle del producto en un modal
+function mostrarDetalleProducto(producto) {
     const modalBody = `
-        <div class="product-detail">
-            <div class="product-detail-image">
-                <img src="${producto.imagen || 'https://via.placeholder.com/400x300.png?text=Sin+Imagen'}" 
-                     alt="${producto.nombre}" style="width: 100%; border-radius: 8px;">
+        <div class="product-detail-modal">
+            <div class="product-detail-header">
+                <img src="${producto.imagen || 'https://via.placeholder.com/150'}" alt="${producto.nombre}" class="product-detail-image">
+                <h2>${producto.nombre}</h2>
             </div>
-            <div class="product-detail-info" style="margin-top: 20px;">
-                <h3 style="color: var(--amazon-blue); margin-bottom: 10px;">${producto.nombre}</h3>
-                ${producto.descripcion ? `<p style="margin-bottom: 15px; color: #666;">${producto.descripcion}</p>` : ''}
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <span style="font-size: 28px; font-weight: bold; color: var(--amazon-orange);">$${producto.precio.toFixed(2)}</span>
-                    <span class="product-card-stock ${stockClass}" style="margin: 0;">${stockText}</span>
-                </div>
+            <div class="product-detail-info">
+                ${producto.descripcion ? `<p>${producto.descripcion}</p>` : ''}
                 ${producto.categoria ? `<p><strong>Categoría:</strong> ${producto.categoria.charAt(0).toUpperCase() + producto.categoria.slice(1)}</p>` : ''}
                 <div style="margin-top: 20px;">
                     <button class="btn btn-primary btn-block" 
@@ -893,7 +1293,6 @@ function mostrarDetalleProducto(id) {
             </div>
         </div>
     `;
-    
     mostrarModal(`<i class="fas fa-eye"></i> Detalle del Producto`, modalBody, 'large');
 }
 
@@ -906,7 +1305,7 @@ function obtenerColorCategoria(categoria) {
         'electrodomesticos': 'linear-gradient(135deg, #fd7e14 0%, #e55a00 100%)',
         'sin-categoria': 'linear-gradient(135deg, #6c757d 0%, #545b62 100%)'
     };
-    
+
     return colores[categoria.toLowerCase()] || colores['sin-categoria'];
 }
 
@@ -917,11 +1316,11 @@ function actualizarTablaAdminProductos() {
         console.error('No se encontró tbody admin-products-table');
         return;
     }
-    
+
     tbody.innerHTML = '';
     productos.forEach(p => {
         const row = document.createElement('tr');
-        
+
         // Información de categoría
         const categoria = p.categoria || 'sin-categoria';
         const categoriaNombre = categoria.charAt(0).toUpperCase() + categoria.slice(1);
@@ -939,36 +1338,35 @@ function actualizarTablaAdminProductos() {
             stockText = `${p.cantidad} (Bajo)`;
         }
         
-        row.innerHTML = `
-            <td class="product-image-cell">
-                <img src="${p.imagen || 'https://via.placeholder.com/50'}" alt="${p.nombre}" class="product-image" width="50">
-            </td>
-            <td class="product-info-cell">
-                <div class="product-info">
-                    <div class="product-name">${p.nombre}</div>
-                    ${p.descripcion ? `<div class="product-description">${p.descripcion}</div>` : ''}
-                </div>
-            </td>
-            <td class="category-cell">
-                <span class="${categoriaClass}">${categoriaNombre}</span>
-            </td>
-            <td class="price-cell">
-                <span class="price-display">$${p.precio.toFixed(2)}</span>
-            </td>
-            <td class="stock-cell">
-                <span class="stock-badge ${stockClass}">${stockText}</span>
-            </td>
-            <td class="actions-cell">
-                <div class="action-buttons">
-                    <button class="btn-action btn-edit" onclick="showEditProductModal(${p.id})" title="Editar producto">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn-action btn-delete" onclick="eliminarProducto(${p.id})" title="Eliminar producto">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </td>
-        `;
+        row.innerHTML =
+            '<td class="product-image-cell">' +
+                '<img src="' + (p.imagen || 'https://via.placeholder.com/50') + '" alt="' + p.nombre + '" class="product-image" width="50">' +
+            '</td>' +
+            '<td class="product-info-cell">' +
+                '<div class="product-info">' +
+                    '<div class="product-name">' + p.nombre + '</div>' +
+                    (p.descripcion ? '<div class="product-description">' + p.descripcion + '</div>' : '') +
+                '</div>' +
+            '</td>' +
+            '<td class="category-cell">' +
+                '<span class="' + categoriaClass + '">' + categoriaNombre + '</span>' +
+            '</td>' +
+            '<td class="price-cell">' +
+                '<span class="price-display">$' + p.precio.toFixed(2) + '</span>' +
+            '</td>' +
+            '<td class="stock-cell">' +
+                '<span class="stock-badge ' + stockClass + '">' + stockText + '</span>' +
+            '</td>' +
+            '<td class="actions-cell">' +
+                '<div class="action-buttons">' +
+                    '<button class="btn-action btn-edit" onclick="showEditProductModal(' + p.id + ')" title="Editar producto">' +
+                        '<i class="fas fa-edit"></i>' +
+                    '</button>' +
+                    '<button class="btn-action btn-delete" onclick="eliminarProducto(' + p.id + ')" title="Eliminar producto">' +
+                        '<i class="fas fa-trash"></i>' +
+                    '</button>' +
+                '</div>' +
+            '</td>';
         tbody.appendChild(row);
     });
 }
@@ -1037,9 +1435,11 @@ function actualizarTablaAdminClientes() {
 
 function actualizarVistaFacturas() {
     const container = document.getElementById('invoice-history-container');
-    container.innerHTML = '<h3>Historial de Facturas</h3>';
+    if (!container) return; // No hacer nada si el contenedor no existe
+
+    container.innerHTML = ''; // Limpiar antes de renderizar
     if (facturas.length === 0) {
-        container.innerHTML += '<p>No hay facturas en el historial.</p>';
+        container.innerHTML = '<p class="no-items">No hay facturas en el historial.</p>';
         return;
     }
     facturas.slice().reverse().forEach(factura => {
@@ -1065,13 +1465,32 @@ function actualizarVistaFacturas() {
         }
 
         item.innerHTML = `
-            <h3>Factura #${factura.id} - Cliente: ${factura.cliente.nombre}</h3>
-            <p>Fecha: ${new Date(factura.fecha).toLocaleDateString()}</p>
-            <p><strong>Total: $${factura.total.toFixed(2)}</strong></p>
-            <ul>
-                ${factura.productos.map(p => `<li>${p.nombre} (x${p.cantidad}) - $${(p.precio * p.cantidad).toFixed(2)}</li>`).join('')}
-            </ul>
-            ${ubicacionInfo}
+            <div class="invoice-header">
+                <h4>Factura ${factura.id}</h4>
+                <p>Fecha: ${new Date(factura.fecha).toLocaleDateString()}</p>
+            </div>
+            <div class="invoice-body">
+                <p><strong>Cliente:</strong> ${factura.cliente.nombre}</p>
+                <p><strong>Total:</strong> <span class="total">$${factura.total.toFixed(2)}</span></p>
+                <details>
+                    <summary>Ver detalles</summary>
+                    <p><strong>Email:</strong> ${factura.cliente.email}</p>
+                    <div class="invoice-products">
+                        <h5>Productos:</h5>
+                        <ul>
+                            ${factura.productos.map(p => `
+                                <li>${p.nombre} x ${p.cantidad} = $${(p.precio * p.cantidad).toFixed(2)}</li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                    <div class="invoice-totals">
+                        <p><strong>Subtotal:</strong> $${factura.subtotal.toFixed(2)}</p>
+                        <p><strong>IVA (12%):</strong> $${factura.iva.toFixed(2)}</p>
+                    </div>
+                    <p><strong>Método de Pago:</strong> ${factura.metodoPago}</p>
+                    ${ubicacionInfo}
+                </details>
+            </div>
         `;
         container.appendChild(item);
     });
@@ -1096,42 +1515,47 @@ function mostrarMapaUbicacion(lat, lng) {
 // ---------------------------------------------------------------------------------
 
 function actualizarSelectores() {
-    // Actualizar selector de clientes
-    const customerSelect = document.getElementById('customer-select');
-    if (customerSelect) {
-        const selectedValue = customerSelect.value;
-        customerSelect.innerHTML = '<option value="">-- Seleccionar Cliente --</option>';
-        clientes.forEach(c => {
-            customerSelect.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
-        });
-        customerSelect.value = selectedValue;
-    }
-
-    // Actualizar selector de productos en facturación
     const productSelect = document.getElementById('product-select');
+
     if (productSelect) {
-        const selectedValue = productSelect.value;
+        const currentVal = productSelect.value;
         productSelect.innerHTML = '<option value="">-- Seleccionar Producto --</option>';
         productos.forEach(p => {
-            if (p.cantidad > 0) { // Solo mostrar productos con stock
-                productSelect.innerHTML += `<option value="${p.id}">${p.nombre} - $${p.precio.toFixed(2)} (Stock: ${p.cantidad})</option>`;
+            if (p.stock > 0) { // Solo mostrar productos con stock
+                const option = document.createElement('option');
+                option.value = p.id;
+                option.textContent = `${p.nombre} - $${p.precio.toFixed(2)} (Stock: ${p.stock})`;
+                productSelect.appendChild(option);
             }
         });
-        productSelect.value = selectedValue;
+        productSelect.value = currentVal;
     }
 }
 
 function mostrarModal(title, body, size = 'normal') {
+    const modal = document.getElementById('editModal');
+    modal.classList.remove('slide-out');
+    modal.classList.add('slide-in');
+
     document.getElementById('modal-title').innerHTML = title;
     document.getElementById('modal-body').innerHTML = body;
 
     const modalContent = document.querySelector('.modal-content');
     modalContent.className = `modal-content ${size}`;
 
-    document.getElementById('editModal').classList.add('active');
+    modal.style.display = 'flex';
+    modal.classList.add('active');
 
     // Prevenir scroll del body cuando el modal está abierto
     document.body.style.overflow = 'hidden';
+    
+    // Asegurar que el modal sea visible
+    setTimeout(() => {
+        if (!modal.classList.contains('active')) {
+            modal.style.display = 'flex';
+            modal.classList.add('active');
+        }
+    }, 100);
 }
 
 function closeModal() {
@@ -1148,7 +1572,10 @@ function closeModal() {
     // Restaurar scroll del body
     document.body.style.overflow = 'auto';
 
-    stopCamera();
+    // Detener la cámara si está activa
+    if (typeof stopCamera === 'function') {
+        stopCamera();
+    }
 
     // Limpiar ubicación temporal
     if (window.tempClientLocation) {
@@ -1165,150 +1592,61 @@ function closeModal() {
 // 12. SISTEMA DE AUTENTICACIÓN DE ADMINISTRADOR
 // ---------------------------------------------------------------------------------
 
-function verificarAutenticacionAdmin() {
-    isAdmin = JSON.parse(localStorage.getItem('adminLoggedIn')) || false;
-    
-    // Si el admin está logueado, iniciar el timer de sesión
-    if (isAdmin) {
-        iniciarTimerSesionAdmin();
-    }
-    
-    actualizarInterfazAdmin();
-}
-
 function mostrarLoginAdmin() {
     const modalBody = `
-        <form id="login-form">
-            <div class="form-group">
-                <label for="username">Usuario</label>
-                <input type="text" id="username" required value="admin">
+        <div class="admin-login-form">
+            <div class="admin-login-icon">
+                <i class="fas fa-user-shield"></i>
             </div>
-            <div class="form-group">
-                <label for="password">Contraseña</label>
-                <input type="password" id="password" required value="123">
-            </div>
-            <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
-        </form>
+            <h3>Acceso de Administrador</h3>
+            <form id="admin-login-form">
+                <div class="form-group">
+                    <label for="admin-username">Usuario</label>
+                    <input type="text" id="admin-username" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="admin-password">Contraseña</label>
+                    <input type="password" id="admin-password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+                </button>
+            </form>
+        </div>
     `;
-    mostrarModal('Acceso de Administrador', modalBody);
 
-    document.getElementById('login-form').addEventListener('submit', e => {
+    mostrarModal('Acceso Administrativo', modalBody);
+
+    // Agregar evento submit al formulario
+    document.getElementById('admin-login-form').addEventListener('submit', function(e) {
         e.preventDefault();
-        const user = document.getElementById('username').value;
-        const pass = document.getElementById('password').value;
-        if (user === adminCredentials.username && pass === adminCredentials.password) {
+        const username = document.getElementById('admin-username').value;
+        const password = document.getElementById('admin-password').value;
+
+        if (username === 'admin' && password === '123') {
             isAdmin = true;
-            
-            // Cerrar modal inmediatamente
+            localStorage.setItem('isAdmin', 'true');
             closeModal();
-            
-            // Guardar datos y actualizar interfaz
-            guardarDatos();
             actualizarInterfazAdmin();
-            showSection('admin');
-            
-            // Mostrar notificación de bienvenida con un pequeño delay
-            setTimeout(() => {
-                mostrarNotificacion('¡Bienvenido, Admin!', 'success');
-            }, 100);
-            
-            // Iniciar timer de sesión de administrador
-            iniciarTimerSesionAdmin();
+            mostrarNotificacion('Sesión iniciada correctamente', 'success');
+            window.location.href = 'index.html#admin';
         } else {
-            mostrarNotificacion('Credenciales incorrectas.', 'error');
+            mostrarNotificacion('Credenciales incorrectas', 'error');
         }
     });
 }
 
-function cerrarSesionAdmin() {
-    isAdmin = false;
-    limpiarTimerSesionAdmin();
-    guardarDatos();
-    actualizarInterfazAdmin();
-    showSection('productos');
-    mostrarNotificacion('Sesión de administrador cerrada.', 'info');
-}
-
-function cerrarSesionAdminAutomaticamente() {
-    // Esperar 2 segundos antes de cerrar la sesión para que el usuario vea el mensaje de éxito
-    setTimeout(() => {
-        isAdmin = false;
-        limpiarTimerSesionAdmin();
-        guardarDatos();
-        actualizarInterfazAdmin();
-        showSection('productos');
-        mostrarNotificacion('Registro completado. Sesión de administrador cerrada automáticamente.', 'info');
-    }, 2000);
-}
-
-// Funciones para manejar el timer de sesión
-function iniciarTimerSesionAdmin() {
-    limpiarTimerSesionAdmin(); // Limpiar timer anterior si existe
-    
-    adminSessionTimer = setTimeout(() => {
-        isAdmin = false;
-        guardarDatos();
-        actualizarInterfazAdmin();
-        showSection('productos');
-        mostrarNotificacion('Sesión de administrador expirada por inactividad (10 minutos).', 'warning');
-    }, ADMIN_SESSION_TIMEOUT);
-}
-
-function limpiarTimerSesionAdmin() {
-    if (adminSessionTimer) {
-        clearTimeout(adminSessionTimer);
-        adminSessionTimer = null;
-    }
-}
-
-function resetearTimerSesionAdmin() {
-    if (isAdmin && adminSessionTimer) {
-        iniciarTimerSesionAdmin(); // Reiniciar timer
-    }
-}
-
-function actualizarInterfazAdmin() {
-    const adminContent = document.getElementById('admin-content');
-    const adminSection = document.getElementById('admin');
-
+function verificarAutenticacionAdmin() {
+    isAdmin = localStorage.getItem('isAdmin') === 'true';
     if (isAdmin) {
-        adminContent.classList.remove('d-none');
-        if (adminSection.contains(document.getElementById('admin-login-prompt'))) {
-            adminSection.removeChild(document.getElementById('admin-login-prompt'));
+        document.getElementById('logout-nav-item').style.display = 'block';
+        const adminContent = document.getElementById('admin-content');
+        if (adminContent) {
+            adminContent.classList.remove('d-none');
         }
-        
-        // Actualizar las tablas de administración inmediatamente
-        setTimeout(() => {
-            actualizarTablaAdminProductos();
-            actualizarTablaAdminClientes();
-        }, 100);
-    } else {
-        adminContent.classList.add('d-none');
-        if (!document.getElementById('admin-login-prompt')) {
-            const loginPrompt = document.createElement('div');
-            loginPrompt.id = 'admin-login-prompt';
-            loginPrompt.className = 'text-center';
-            loginPrompt.innerHTML = `
-                <h2>Acceso Restringido</h2>
-                <p>Debes iniciar sesión como administrador para ver esta sección.</p>
-                <button class="btn btn-primary" onclick="mostrarLoginAdmin()">Iniciar Sesión</button>
-            `;
-            adminSection.appendChild(loginPrompt);
-        }
+        actualizarInterfazAdmin();
     }
-    // Actualizar vistas que dependen de si es admin o no (ej: botones de editar/eliminar)
-    actualizarTodasLasVistas();
 }
-
-function verificarPermisosAdmin() {
-    if (!isAdmin) {
-        mostrarNotificacion('Acción no permitida. Se requieren permisos de administrador.', 'error');
-        mostrarLoginAdmin();
-        return false;
-    }
-    return true;
-}
-
 
 // ---------------------------------------------------------------------------------
 // EVENT LISTENERS GLOBALES
@@ -1316,7 +1654,31 @@ function verificarPermisosAdmin() {
 document.addEventListener('DOMContentLoaded', () => {
     cargarDatos();
     verificarAutenticacionAdmin();
-    solicitarPermisoNotificaciones();
+
+    const path = window.location.pathname;
+
+    if (path.includes('factura.html')) {
+        // Lógica específica para factura.html
+        inicializarPaginaFactura();
+    } else {
+        // Lógica para index.html
+        const hash = window.location.hash.substring(1);
+        if (hash) {
+            showSection(hash);
+        } else {
+            showSection('productos');
+        }
+        inicializarBusqueda();
+    }
+    
+    // Agregar listener para cambios en el hash (navegación)
+    window.addEventListener('hashchange', function() {
+        const newHash = window.location.hash.substring(1);
+        if (newHash) {
+            showSection(newHash);
+        }
+    });
+
 
     // Cargar datos de ejemplo si es la primera vez
     setTimeout(cargarDatosEjemplo, 500);
@@ -1334,7 +1696,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const backToCartBtn = document.getElementById('back-to-cart-btn');
     if (backToCartBtn) {
-        backToCartBtn.addEventListener('click', volverAlCarrito);
+        // Ya no es necesario
     }
 
     // Listener para el botón de generar factura
@@ -1344,13 +1706,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Listener para el botón de cerrar sesión
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', cerrarSesionAdmin);
+    const logoutLink = document.getElementById('logout-link');
+    if (logoutLink) {
+        logoutLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            cerrarSesionAdmin();
+        });
+    }
+    
+    // Listener para navegar a la sección de admin
+    const navAdminLink = document.getElementById('nav-admin');
+    if (navAdminLink) {
+        navAdminLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (isAdmin) {
+                window.location.hash = 'admin';
+                showSection('admin');
+            } else {
+                mostrarLoginAdmin();
+            }
+        });
+    }
+
+    const navHistorialLink = document.getElementById('nav-historial');
+    if (navHistorialLink) {
+        navHistorialLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (isAdmin) {
+                window.location.href = 'index.html#admin';
+                setTimeout(() => {
+                    document.getElementById('admin-invoices')?.scrollIntoView({ behavior: 'smooth' });
+                }, 200);
+            } else {
+                mostrarLoginAdmin();
+            }
+        });
     }
 
     // Actualizar info inicial del carrito
-    actualizarInfoCarrito();
+    if(typeof actualizarInfoCarrito === 'function') actualizarInfoCarrito();
 
     // Listener para cambio de cliente
     const customerSelect = document.getElementById('customer-select');
@@ -1369,28 +1763,31 @@ document.addEventListener('DOMContentLoaded', () => {
     // Listeners para detectar actividad del administrador y resetear timer
     document.addEventListener('click', function(e) {
         // Solo resetear timer si el admin está logueado y está en sección admin
-        if (isAdmin && document.getElementById('admin').classList.contains('active')) {
+        if (isAdmin && (document.getElementById('admin')?.classList.contains('active') || window.location.pathname.includes('factura.html'))) {
             resetearTimerSesionAdmin();
         }
     });
 
     document.addEventListener('keydown', function(e) {
         // Solo resetear timer si el admin está logueado y está en sección admin
-        if (isAdmin && document.getElementById('admin').classList.contains('active')) {
+        if (isAdmin && (document.getElementById('admin')?.classList.contains('active') || window.location.pathname.includes('factura.html'))) {
             resetearTimerSesionAdmin();
         }
     });
 
     // Listener para cerrar modal al hacer clic fuera del contenido
-    document.getElementById('editModal').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeModal();
-        }
-    });
+    const editModal = document.getElementById('editModal');
+    if(editModal) {
+        editModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    }
 
     // Listener para cerrar modal con tecla Escape
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && document.getElementById('editModal').classList.contains('active')) {
+        if (e.key === 'Escape' && editModal && editModal.classList.contains('active')) {
             closeModal();
         }
     });
@@ -1430,3 +1827,141 @@ function debugTablas() {
 }
 
 // ---------------------------------------------------------------------------------
+// INICIALIZACIÓN PÁGINA DE FACTURA
+// ---------------------------------------------------------------------------------
+
+function inicializarPaginaFactura() {
+    cargarProductosCatalogoFactura();
+    actualizarVistaFactura();
+    generarNumeroFactura();
+
+    document.getElementById('btn-nuevo-cliente').addEventListener('click', mostrarNuevoClienteFactura);
+    document.getElementById('generate-invoice-btn').addEventListener('click', generarFactura);
+    document.getElementById('clear-invoice-btn').addEventListener('click', limpiarFactura);
+    
+    document.getElementById('payment-method').addEventListener('change', (e) => {
+        facturaActual.metodoPago = e.target.value;
+        actualizarVistaPrevia();
+    });
+
+    const searchInput = document.getElementById('search-products');
+    searchInput.addEventListener('input', (e) => cargarProductosCatalogoFactura(e.target.value));
+}
+
+function cargarProductosCatalogoFactura(termino = '') {
+    const container = document.getElementById('products-catalog');
+    if (!container) return;
+
+    const productosFiltrados = productos.filter(p => 
+        p.nombre.toLowerCase().includes(termino.toLowerCase()) && p.cantidad > 0
+    );
+
+    if (productosFiltrados.length === 0) {
+        container.innerHTML = '<p class="no-items">No se encontraron productos.</p>';
+        return;
+    }
+
+    container.innerHTML = productosFiltrados.map(producto => `
+        <div class="product-item" onclick="seleccionarProductoParaFactura(${producto.id})">
+            <img src="${producto.imagen || 'https://via.placeholder.com/100'}" alt="${producto.nombre}">
+            <div class="product-item-details">
+                <h5>${producto.nombre}</h5>
+                <p class="price">$${producto.precio.toFixed(2)}</p>
+                <p>Stock: ${producto.cantidad}</p>
+            </div>
+        </div>
+    `).join('');
+}
+
+let productoSeleccionadoFactura = null;
+
+function seleccionarProductoParaFactura(id) {
+    productoSeleccionadoFactura = productos.find(p => p.id === id);
+    
+    document.querySelectorAll('#products-catalog .product-item').forEach(item => {
+        item.classList.remove('selected');
+    });
+    
+    const itemEl = document.querySelector(`#products-catalog .product-item[onclick="seleccionarProductoParaFactura(${id})"]`);
+    if (itemEl) {
+        itemEl.classList.add('selected');
+    }
+    
+    // Habilitar botón de agregar
+    const addButton = document.querySelector('button[onclick="agregarProductoSeleccionadoAFactura()"]');
+    if(addButton) addButton.disabled = false;
+}
+
+function agregarProductoSeleccionadoAFactura() {
+    if (!productoSeleccionadoFactura) {
+        mostrarNotificacion('Por favor, seleccione un producto del catálogo.', 'error');
+        return;
+    }
+    agregarProductoFactura(productoSeleccionadoFactura.id);
+}
+
+function actualizarVistaFactura() {
+    actualizarListaProductosFactura();
+    actualizarTotalesFactura();
+    actualizarVistaPrevia();
+}
+
+function actualizarListaProductosFactura() {
+    const container = document.getElementById('invoice-items-container');
+    if (!container) return;
+
+    if (facturaActual.productos.length === 0) {
+        container.innerHTML = `<div class="empty-items"><i class="fas fa-clipboard-list"></i><p>No hay productos agregados</p></div>`;
+        return;
+    }
+
+    container.innerHTML = facturaActual.productos.map(producto => `
+        <div class="invoice-item">
+            <img src="${producto.imagen || 'https://via.placeholder.com/50'}" class="invoice-item-img">
+            <div class="invoice-item-details">
+                <h6>${producto.nombre}</h6>
+                <p>$${producto.precio.toFixed(2)} x ${producto.cantidad}</p>
+            </div>
+            <div class="invoice-item-quantity">
+                <button onclick="cambiarCantidadProductoFactura(${producto.id}, -1)" class="btn btn-sm btn-outline-secondary"><i class="fas fa-minus"></i></button>
+                <span class="quantity-display">${producto.cantidad}</span>
+                <button onclick="cambiarCantidadProductoFactura(${producto.id}, 1)" class="btn btn-sm btn-outline-secondary"><i class="fas fa-plus"></i></button>
+            </div>
+            <div class="invoice-item-total">$${(producto.precio * producto.cantidad).toFixed(2)}</div>
+            <button onclick="eliminarProductoFactura(${producto.id})" class="btn-icon"><i class="fas fa-trash"></i></button>
+        </div>
+    `).join('');
+}
+
+function actualizarTotalesFactura() {
+    const subtotal = facturaActual.productos.reduce((sum, p) => sum + (p.precio * p.cantidad), 0);
+    const iva = subtotal * 0.12;
+    const total = subtotal + iva;
+
+    document.getElementById('invoice-subtotal').textContent = `$${subtotal.toFixed(2)}`;
+    document.getElementById('invoice-tax').textContent = `$${iva.toFixed(2)}`;
+    document.getElementById('invoice-total').textContent = `$${total.toFixed(2)}`;
+}
+
+function actualizarVistaPrevia() {
+    const subtotal = facturaActual.productos.reduce((sum, p) => sum + (p.precio * p.cantidad), 0);
+    const iva = subtotal * 0.12;
+    const total = subtotal + iva;
+
+    const previewClientName = document.getElementById('preview-client-name');
+    const previewClientEmail = document.getElementById('preview-client-email');
+    const previewItemsCount = document.getElementById('preview-items-count');
+    const previewTotal = document.getElementById('preview-total');
+
+    if (previewClientName) previewClientName.textContent = facturaActual.cliente?.nombre || '-';
+    if (previewClientEmail) previewClientEmail.textContent = facturaActual.cliente?.email || '-';
+    if (previewItemsCount) previewItemsCount.textContent = facturaActual.productos.length;
+    if (previewTotal) previewTotal.textContent = `$${total.toFixed(2)}`;
+}
+
+function generarNumeroFactura() {
+    const invoiceNumberEl = document.getElementById('invoice-number');
+    if (invoiceNumberEl) {
+        invoiceNumberEl.textContent = `FAC-${String(facturas.length + 1).padStart(3, '0')}`;
+    }
+}

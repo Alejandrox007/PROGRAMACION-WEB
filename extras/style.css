@@ -1,0 +1,575 @@
+/* =================================================================================
+   AMAZON BUSINESS - ESTILOS GLOBALES Y DE COMPONENTES
+   ================================================================================= */
+
+:root {
+    --amazon-blue: #232f3e;
+    --amazon-orange: #ff9900;
+    --amazon-light-blue: #37475a;
+    --background-color: #eaeded;
+    --text-color: #0f1111;
+    --link-color: #007185;
+    --border-color: #ddd;
+    --white: #ffffff;
+    --success-color: #28a745;
+    --error-color: #dc3545;
+    --box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+    --border-radius: 8px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Amazon Ember', Arial, sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.5;
+}
+
+.container {
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* =================================================================================
+   HEADER Y NAVEGACIÓN
+   ================================================================================= */
+
+header {
+    background-color: var(--amazon-blue);
+    color: var(--white);
+    padding: 10px 0;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.logo {
+    font-size: 28px;
+    font-weight: bold;
+    color: var(--amazon-orange);
+    text-decoration: none;
+}
+
+nav ul {
+    list-style: none;
+    display: flex;
+    gap: 15px;
+}
+
+nav ul li a {
+    color: var(--white);
+    text-decoration: none;
+    font-weight: bold;
+    padding: 10px 15px;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+}
+
+nav ul li a:hover, nav ul li a.active {
+    background-color: var(--amazon-light-blue);
+}
+
+#cart-info {
+    color: var(--amazon-orange);
+    font-weight: bold;
+}
+
+/* =================================================================================
+   ESTRUCTURA DE SECCIONES
+   ================================================================================= */
+
+main {
+    padding: 20px 0;
+}
+
+section {
+    display: none; /* Ocultas por defecto, JS las muestra */
+    background-color: var(--white);
+    padding: 25px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    margin-bottom: 20px;
+}
+
+section.active {
+    display: block; /* La sección activa es visible */
+}
+
+h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--amazon-blue);
+}
+
+/* =================================================================================
+   CATÁLOGO DE PRODUCTOS
+   ================================================================================= */
+
+.products-catalog {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 25px;
+}
+
+.product-card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+    background-color: #fff;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.product-card-img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    cursor: pointer;
+}
+
+.product-card-body {
+    padding: 15px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.product-card-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    flex-grow: 1;
+}
+
+.product-card-price {
+    font-size: 22px;
+    font-weight: bold;
+    color: var(--amazon-orange);
+    margin-bottom: 10px;
+}
+
+.product-card-stock {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 15px;
+}
+
+.product-card-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* =================================================================================
+   CARRITO DE COMPRAS Y FACTURACIÓN
+   ================================================================================= */
+
+#cart-items-container {
+    margin-bottom: 30px;
+}
+
+.cart-item {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 15px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.cart-item:last-child {
+    border-bottom: none;
+}
+
+.cart-item-img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.cart-item-details {
+    flex-grow: 1;
+}
+
+.cart-item-title {
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.cart-item-price {
+    color: var(--amazon-orange);
+}
+
+.cart-item-quantity {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cart-item-quantity input {
+    width: 50px;
+    text-align: center;
+}
+
+#cart-summary {
+    background-color: #f7f7f7;
+    padding: 20px;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+}
+
+#cart-summary h3 {
+    margin-bottom: 15px;
+    font-size: 20px;
+}
+
+#cart-summary p {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+#cart-summary #cart-total {
+    font-weight: bold;
+    font-size: 18px;
+    color: var(--amazon-orange);
+}
+
+#invoice-customer-data {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+/* =================================================================================
+   SECCIÓN DE ADMINISTRACIÓN
+   ================================================================================= */
+
+.admin-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.admin-table th, .admin-table td {
+    border: 1px solid var(--border-color);
+    padding: 12px;
+    text-align: left;
+}
+
+.admin-table th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
+.admin-table img {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.admin-table .actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* =================================================================================
+   MODAL UNIVERSAL
+   ================================================================================= */
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.6);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background-color: var(--white);
+    padding: 30px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+    animation: slide-down 0.4s ease-out;
+}
+
+@keyframes slide-down {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    color: #aaa;
+    font-size: 30px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.modal-close:hover {
+    color: var(--text-color);
+}
+
+#modal-body {
+    margin-top: 20px;
+}
+
+/* =================================================================================
+   FORMULARIOS
+   ================================================================================= */
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #333;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group input[type="email"],
+.form-group input[type="password"] {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--amazon-orange);
+    box-shadow: 0 0 0 2px rgba(255, 153, 0, 0.2);
+}
+
+.photo-preview {
+    max-width: 100%;
+    height: auto;
+    margin-top: 15px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    display: none; /* Oculta hasta que haya imagen */
+}
+
+/* =================================================================================
+   BOTONES
+   ================================================================================= */
+
+.btn {
+    display: inline-block;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 4px;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.btn-primary {
+    background-color: var(--amazon-orange);
+    color: var(--white);
+}
+
+.btn-primary:hover {
+    background-color: #e68a00;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.btn-secondary {
+    background-color: var(--amazon-light-blue);
+    color: var(--white);
+}
+
+.btn-secondary:hover {
+    background-color: #4a5c70;
+}
+
+.btn-danger {
+    background-color: var(--error-color);
+    color: var(--white);
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+}
+
+.btn-success {
+    background-color: var(--success-color);
+    color: var(--white);
+}
+
+.btn-success:hover {
+    background-color: #218838;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+}
+
+.btn-icon i {
+    font-size: 18px;
+    color: var(--link-color);
+}
+
+.btn-icon:hover i {
+    color: var(--amazon-orange);
+}
+
+/* =================================================================================
+   NOTIFICACIONES (TOAST)
+   ================================================================================= */
+
+.toast-notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: var(--amazon-blue);
+    color: var(--white);
+    padding: 15px 25px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    z-index: 3000;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.toast-notification.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast-notification.success {
+    background-color: var(--success-color);
+}
+
+.toast-notification.error {
+    background-color: var(--error-color);
+}
+
+/* =================================================================================
+   HISTORIAL DE FACTURAS
+   ================================================================================= */
+
+.invoice-history-item {
+    background-color: #f7f7f7;
+    padding: 20px;
+    border-radius: var(--border-radius);
+    margin-bottom: 15px;
+    border: 1px solid var(--border-color);
+}
+
+.invoice-history-item h3 {
+    margin-bottom: 10px;
+    color: var(--amazon-blue);
+}
+
+/* =================================================================================
+   VIDEO Y CANVAS PARA CÁMARA
+   ================================================================================= */
+#camera-container video, #camera-container canvas {
+    max-width: 100%;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+/* =================================================================================
+   UTILIDADES Y RESPONSIVE
+   ================================================================================= */
+
+.text-center {
+    text-align: center;
+}
+
+.mt-2 {
+    margin-top: 2rem;
+}
+
+.d-none {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    nav ul {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .admin-section {
+        grid-template-columns: 1fr;
+    }
+
+    .cart-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
